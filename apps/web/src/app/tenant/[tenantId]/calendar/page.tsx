@@ -36,6 +36,19 @@ const getLocalDateStr = () => {
 
 const todayStr = getLocalDateStr();
 
+const formatDateJP = (dateStr: string) => {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return `${d.getMonth() + 1}月${d.getDate()}日`;
+};
+
+const formatDateJPFull = (dateStr: string) => {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  const DOW = ['日', '月', '火', '水', '木', '金', '土'];
+  return `${d.getMonth() + 1}月${d.getDate()}日（${DOW[d.getDay()]}）`;
+};
+
 export default function TenantCalendar() {
   const params = useParams();
   const tenantId = params?.tenantId as string;
@@ -56,6 +69,18 @@ export default function TenantCalendar() {
   const [addMedProductId, setAddMedProductId] = useState('');
   const [addMedUsedQty, setAddMedUsedQty] = useState('0');
   const [addMedNextQty, setAddMedNextQty] = useState('1');
+  // モーダル STEP管理: 'confirm_date' | 'pick_date' | 'set_interval'
+  const [visitModalStep, setVisitModalStep] = useState<'confirm_date' | 'pick_date' | 'set_interval'>('confirm_date');
+  // 次回日直接指定モード
+  const [visitNextDirectDate, setVisitNextDirectDate] = useState<string>('');
+  const [visitNextDirectMode, setVisitNextDirectMode] = useState<boolean>(false);
+  // トースト通知
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
   // 希望商品ドラッグ（モーダル内）
   const [modalDraggedIndex, setModalDraggedIndex] = useState<number | null>(null);
   const [isModalTouchDragging, setIsModalTouchDragging] = useState(false);
@@ -170,6 +195,15 @@ export default function TenantCalendar() {
     );
   };
 
+  // 次回予定日のプレビュー計算
+  const calcNextVisitDate = () => {
+    if (visitNextDirectMode && visitNextDirectDate) return visitNextDirectDate;
+    if (!visitCompletedDate) return '';
+    const base = new Date(visitCompletedDate);
+    base.setDate(base.getDate() + visitNextInterval);
+    return base.toISOString().split('T')[0];
+  };
+
   // モーダル内の希望商品ドラッグ
   const handleModalDragStart = (index: number) => setModalDraggedIndex(index);
   const handleModalDragOver = (e: React.DragEvent, index: number) => {
@@ -253,6 +287,7 @@ export default function TenantCalendar() {
   const handleVisitCompleteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!visitModalCustomer) return;
+    const nextDateStr = calcNextVisitDate();
     setActionLoading(`visit-${visitModalCustomer.customerId}`);
     try {
       const res = await fetch(`/api/${tenantId}/customers/visit-complete`, {
@@ -262,12 +297,15 @@ export default function TenantCalendar() {
           customerId: visitModalCustomer.customerId,
           actualItems: visitActualItems.map(i => ({ productId: i.productId, quantity: i.usedQty })),
           nextItems: visitActualItems.map(i => ({ productId: i.productId, quantity: i.nextQty })),
-          nextVisitInterval: Number(visitNextInterval),
-          visitDate: visitCompletedDate || todayStr, // 来局完了日
+          nextVisitInterval: visitNextDirectMode ? 0 : Number(visitNextInterval),
+          visitDate: visitCompletedDate || todayStr,
+          nextVisitDate: nextDateStr || undefined,
         }),
       });
       if (res.ok) {
+        const nextLabel = nextDateStr ? `次回${formatDateJPFull(nextDateStr)}に設定しました` : '次回予定を登録しました';
         setVisitModalCustomer(null);
+        showToast(`✅ ${visitModalCustomer.customerName}さんの来局完了。${nextLabel}。`);
         await fetchCalendar();
       } else {
         alert('来店処理に失敗しました。');
@@ -606,200 +644,334 @@ export default function TenantCalendar() {
               <X className="w-5 h-5" />
             </button>
 
+            {/* モーダルヘッダー */}
             <div className="p-6 border-b border-slate-800">
               <h3 className="font-bold text-lg text-white flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-emerald-500" />
                 来店処理: {visitModalCustomer.customerName}
               </h3>
-              <p className="text-xs text-slate-400 mt-1">今回使用量を確定して在庫を減算。次回予定量を登録します。</p>
+              {/* ステップインジケーター */}
+              <div className="flex items-center gap-2 mt-3">
+                {(['confirm_date', 'pick_date', 'set_interval'] as const).map((s, i) => {
+                  const labels = ['① 完了日確認', '② 日付選択', '③ 次回日設定'];
+                  const steps = ['confirm_date', 'pick_date', 'set_interval'];
+                  const isActive = visitModalStep === s;
+                  const isDone = steps.indexOf(visitModalStep) > i;
+                  return (
+                    <span key={s} className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all ${
+                      isActive ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
+                      : isDone ? 'bg-slate-700 border-slate-600 text-slate-400 line-through'
+                      : 'bg-slate-800/50 border-slate-700 text-slate-500'
+                    }`}>{labels[i]}</span>
+                  );
+                })}
+              </div>
             </div>
 
-            {/* 来局完了日セクション（モーダルヘッダー直下） */}
-            <div className="px-6 py-3 bg-slate-950/40 border-b border-slate-800 flex items-center gap-3">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider shrink-0">来局完了日</span>
-              <input
-                type="date"
-                value={visitCompletedDate}
-                max={todayStr}
-                onChange={(e) => setVisitCompletedDate(e.target.value)}
-                className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-indigo-500 cursor-pointer"
-              />
-              {visitCompletedDate !== todayStr && (
-                <span className="text-[10px] text-amber-400 font-semibold bg-amber-500/10 px-2 py-1 rounded border border-amber-500/20">
-                  過去日付で登録
-                </span>
-              )}
-            </div>
+            {/* ===== STEP 1: 完了日確認 ===== */}
+            {visitModalStep === 'confirm_date' && (
+              <div className="p-6 space-y-5">
+                <p className="text-sm text-slate-200 font-semibold text-center">
+                  本日（{formatDateJPFull(todayStr)}）に<br />完了しましたか？
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setVisitCompletedDate(todayStr);
+                      setVisitModalStep('set_interval');
+                    }}
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl text-sm transition-all active:scale-95 cursor-pointer"
+                  >
+                    ✅ はい
+                  </button>
+                  <button
+                    onClick={() => setVisitModalStep('pick_date')}
+                    className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-3 rounded-xl text-sm transition-all active:scale-95 cursor-pointer"
+                  >
+                    📅 別の日を選ぶ
+                  </button>
+                </div>
+              </div>
+            )}
 
-            <form onSubmit={handleVisitCompleteSubmit}>
-              <div className="p-6 space-y-5 max-h-[55vh] overflow-y-auto custom-scrollbar">
+            {/* ===== STEP 2: 別の日を選ぶ ===== */}
+            {visitModalStep === 'pick_date' && (
+              <div className="p-6 space-y-4">
+                <p className="text-xs text-slate-400">来局完了日を選択してください</p>
+                <input
+                  type="date"
+                  value={visitCompletedDate}
+                  max={todayStr}
+                  onChange={(e) => setVisitCompletedDate(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500 cursor-pointer"
+                />
+                {visitCompletedDate && visitCompletedDate !== todayStr && (
+                  <span className="inline-block text-[11px] text-amber-400 font-semibold bg-amber-500/10 px-3 py-1 rounded-lg border border-amber-500/20">
+                    過去日付: {formatDateJPFull(visitCompletedDate)}
+                  </span>
+                )}
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => setVisitModalStep('confirm_date')}
+                    className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-2.5 rounded-xl text-xs transition-colors cursor-pointer"
+                  >
+                    ← 戻る
+                  </button>
+                  <button
+                    disabled={!visitCompletedDate}
+                    onClick={() => setVisitModalStep('set_interval')}
+                    className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl text-sm transition-all active:scale-95 disabled:opacity-40 cursor-pointer"
+                  >
+                    確定 →
+                  </button>
+                </div>
+              </div>
+            )}
 
-                {/* 購入商品リスト（ドラッグ並び替え対応） */}
-                <div className="space-y-3">
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <GripVertical className="w-3.5 h-3.5" />
-                    医薬品リスト（長押しで並び替え）
-                  </h4>
-                  {visitActualItems.length === 0 ? (
-                    <p className="text-slate-500 text-xs italic">希望商品はありません。下の「追加」から薬を追加してください。</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {/* ヘッダー行 */}
-                      <div className="grid grid-cols-[auto_1fr_auto_auto_auto] gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider px-2">
-                        <div className="w-4"></div>
-                        <div>商品名</div>
-                        <div className="text-center w-16">今回使用</div>
-                        <div className="text-center w-16">次回予定</div>
-                        <div className="w-5"></div>
-                      </div>
-                      {visitActualItems.map((item, idx) => {
-                        const isDraggingThis = modalDraggedIndex === idx;
-                        return (
-                          <div
-                            key={item.productId}
-                            data-modal-drag-index={idx}
-                            draggable="true"
-                            onDragStart={() => handleModalDragStart(idx)}
-                            onDragOver={(e) => handleModalDragOver(e, idx)}
-                            onDragEnd={handleModalDragEnd}
-                            onTouchStart={() => handleModalTouchStart(idx)}
-                            onTouchMove={handleModalTouchMove}
-                            onTouchEnd={handleModalTouchEnd}
-                            className={`bg-slate-950/40 border rounded-xl px-3 py-2 grid grid-cols-[auto_1fr_auto_auto_auto] items-center gap-2 select-none transition-all ${
-                              isDraggingThis ? 'opacity-40 border-indigo-500' : 'border-slate-800/80 hover:border-slate-700'
-                            }`}
-                          >
-                            <div className="text-slate-500 cursor-grab active:cursor-grabbing">
-                              <GripVertical className="w-3.5 h-3.5" />
-                            </div>
-                            <span className="font-semibold text-xs text-slate-200 truncate">{item.productName}</span>
-                            <div className="flex flex-col items-center gap-0.5">
-                              <span className="text-[9px] text-slate-500">今回</span>
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={item.usedQty}
-                                onChange={(e) => {
-                                  const updated = [...visitActualItems];
-                                  updated[idx].usedQty = parseFloat(e.target.value) || 0;
-                                  setVisitActualItems(updated);
-                                }}
-                                className="w-16 bg-slate-900 border border-slate-800 text-center rounded-lg py-1 text-xs font-semibold text-white focus:outline-none focus:border-indigo-500"
-                              />
-                            </div>
-                            <div className="flex flex-col items-center gap-0.5">
-                              <span className="text-[9px] text-indigo-400">次回</span>
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={item.nextQty}
-                                onChange={(e) => {
-                                  const updated = [...visitActualItems];
-                                  updated[idx].nextQty = parseFloat(e.target.value) || 0;
-                                  setVisitActualItems(updated);
-                                }}
-                                className="w-16 bg-slate-900 border border-indigo-900/50 text-center rounded-lg py-1 text-xs font-semibold text-indigo-300 focus:outline-none focus:border-indigo-500"
-                              />
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveMed(item.productId)}
-                              className="text-slate-500 hover:text-rose-400 p-0.5 rounded transition-colors cursor-pointer"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
+            {/* ===== STEP 3: 次回日設定 ===== */}
+            {visitModalStep === 'set_interval' && (
+              <form onSubmit={handleVisitCompleteSubmit}>
+                <div className="p-6 space-y-4 max-h-[55vh] overflow-y-auto custom-scrollbar">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-400">完了日: <span className="text-white font-semibold">{formatDateJPFull(visitCompletedDate)}</span></span>
+                    <span className="text-[10px] text-slate-500">前回周期: {visitModalCustomer.visitInterval}日</span>
+                  </div>
+
+                  <p className="text-xs font-bold text-slate-300 uppercase tracking-wider">次回の予定を設定してください</p>
+
+                  {/* 日数スライダー＋カウンター */}
+                  {!visitNextDirectMode && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1">
+                          <input
+                            type="range"
+                            min="0"
+                            max="365"
+                            value={visitNextInterval}
+                            onChange={(e) => setVisitNextInterval(parseInt(e.target.value))}
+                            className="w-full accent-indigo-500 cursor-pointer"
+                          />
+                          <div className="flex justify-between text-[9px] text-slate-600 mt-0.5">
+                            <span>0日</span><span>180日</span><span>365日</span>
                           </div>
-                        );
-                      })}
+                        </div>
+                        <div className="flex items-center gap-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 min-w-[90px] justify-center">
+                          <button type="button" onClick={() => setVisitNextInterval(Math.max(0, visitNextInterval - 1))}
+                            className="text-slate-400 hover:text-white font-bold text-lg leading-none cursor-pointer">−</button>
+                          <span className="text-white font-bold text-base mx-2 min-w-[2rem] text-center">{visitNextInterval}</span>
+                          <button type="button" onClick={() => setVisitNextInterval(Math.min(365, visitNextInterval + 1))}
+                            className="text-slate-400 hover:text-white font-bold text-lg leading-none cursor-pointer">＋</button>
+                        </div>
+                        <span className="text-sm text-slate-400 shrink-0">日後</span>
+                      </div>
+                      {visitNextInterval > 0 ? (
+                        <div className="bg-indigo-900/30 border border-indigo-500/30 rounded-xl px-4 py-2.5 flex items-center justify-between">
+                          <span className="text-xs text-indigo-300">次回予定日</span>
+                          <span className="text-base font-bold text-white">{formatDateJPFull(calcNextVisitDate())}</span>
+                        </div>
+                      ) : (
+                        <div className="bg-amber-900/20 border border-amber-500/20 rounded-xl px-4 py-2 text-xs text-amber-400">
+                          ※ 0日に設定すると「来局不要（非アクティブ）」になります
+                        </div>
+                      )}
                     </div>
                   )}
-                </div>
 
-                {/* 薬品追加セクション */}
-                <div className="border-t border-slate-800 pt-4 space-y-2">
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <Plus className="w-3.5 h-3.5 text-emerald-400" />
-                    今回処方された薬を追加
-                  </h4>
-                  <div className="flex gap-2 items-end">
-                    <div className="flex-1">
-                      <label className="text-[10px] text-slate-500 block mb-1">薬品</label>
-                      <select
-                        value={addMedProductId}
-                        onChange={(e) => setAddMedProductId(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  {/* 日付直接指定モード */}
+                  {visitNextDirectMode && (
+                    <div className="space-y-2">
+                      <input
+                        type="date"
+                        value={visitNextDirectDate}
+                        min={visitCompletedDate}
+                        onChange={(e) => setVisitNextDirectDate(e.target.value)}
+                        className="w-full bg-slate-950 border border-indigo-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500 cursor-pointer"
+                      />
+                      {visitNextDirectDate && (
+                        <div className="bg-indigo-900/30 border border-indigo-500/30 rounded-xl px-4 py-2.5 flex items-center justify-between">
+                          <span className="text-xs text-indigo-300">次回予定日</span>
+                          <span className="text-base font-bold text-white">{formatDateJPFull(visitNextDirectDate)}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => { setVisitNextDirectMode(!visitNextDirectMode); setVisitNextDirectDate(''); }}
+                    className="text-xs text-indigo-400 hover:text-indigo-300 underline cursor-pointer transition-colors"
+                  >
+                    {visitNextDirectMode ? '← 日数スクロールに戻る' : '📅 日付を直接指定する'}
+                  </button>
+
+                  {/* 医薬品リスト（ドラッグ＆ドロップ） */}
+                  <div className="space-y-3 pt-4 border-t border-slate-800">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <GripVertical className="w-3.5 h-3.5" />
+                      医薬品リスト（長押しで並び替え）
+                    </h4>
+                    {visitActualItems.length === 0 ? (
+                      <p className="text-slate-500 text-xs italic">希望商品はありません。下の「追加」から薬を追加してください。</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {/* ヘッダー行 */}
+                        <div className="grid grid-cols-[auto_1fr_auto_auto_auto] gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider px-2">
+                          <div className="w-4"></div>
+                          <div>商品名</div>
+                          <div className="text-center w-16">今回使用</div>
+                          <div className="text-center w-16">次回予定</div>
+                          <div className="w-5"></div>
+                        </div>
+                        {visitActualItems.map((item, idx) => {
+                          const isDraggingThis = modalDraggedIndex === idx;
+                          return (
+                            <div
+                              key={item.productId}
+                              data-modal-drag-index={idx}
+                              draggable="true"
+                              onDragStart={() => handleModalDragStart(idx)}
+                              onDragOver={(e) => handleModalDragOver(e, idx)}
+                              onDragEnd={handleModalDragEnd}
+                              onTouchStart={() => handleModalTouchStart(idx)}
+                              onTouchMove={handleModalTouchMove}
+                              onTouchEnd={handleModalTouchEnd}
+                              className={`bg-slate-950/40 border rounded-xl px-3 py-2 grid grid-cols-[auto_1fr_auto_auto_auto] items-center gap-2 select-none transition-all ${
+                                isDraggingThis ? 'opacity-40 border-indigo-500' : 'border-slate-800/80 hover:border-slate-700'
+                              }`}
+                            >
+                              <div className="text-slate-500 cursor-grab active:cursor-grabbing">
+                                <GripVertical className="w-3.5 h-3.5" />
+                              </div>
+                              <span className="font-semibold text-xs text-slate-200 truncate">{item.productName}</span>
+                              <div className="flex flex-col items-center gap-0.5">
+                                <span className="text-[9px] text-slate-500">今回</span>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={item.usedQty}
+                                  onChange={(e) => {
+                                    const updated = [...visitActualItems];
+                                    updated[idx].usedQty = parseFloat(e.target.value) || 0;
+                                    setVisitActualItems(updated);
+                                  }}
+                                  className="w-16 bg-slate-900 border border-slate-800 text-center rounded-lg py-1 text-xs font-semibold text-white focus:outline-none focus:border-indigo-500"
+                                />
+                              </div>
+                              <div className="flex flex-col items-center gap-0.5">
+                                <span className="text-[9px] text-indigo-400">次回</span>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={item.nextQty}
+                                  onChange={(e) => {
+                                    const updated = [...visitActualItems];
+                                    updated[idx].nextQty = parseFloat(e.target.value) || 0;
+                                    setVisitActualItems(updated);
+                                  }}
+                                  className="w-16 bg-slate-900 border border-indigo-900/50 text-center rounded-lg py-1 text-xs font-semibold text-indigo-300 focus:outline-none focus:border-indigo-500"
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveMed(item.productId)}
+                                className="text-slate-500 hover:text-rose-400 p-0.5 rounded transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 薬品追加セクション */}
+                  <div className="border-t border-slate-800 pt-4 space-y-2">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <Plus className="w-3.5 h-3.5 text-emerald-400" />
+                      今回処方された薬を追加
+                    </h4>
+                    <div className="flex gap-2 items-end">
+                      <div className="flex-1">
+                        <label className="text-[10px] text-slate-500 block mb-1">薬品</label>
+                        <select
+                          value={addMedProductId}
+                          onChange={(e) => setAddMedProductId(e.target.value)}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                        >
+                          {allProducts.map(p => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-500 block mb-1">今回</label>
+                        <input
+                          type="number" step="0.01"
+                          value={addMedUsedQty}
+                          onChange={(e) => setAddMedUsedQty(e.target.value)}
+                          className="w-14 bg-slate-950 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-white text-center focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-indigo-400 block mb-1">次回</label>
+                        <input
+                          type="number" step="0.01"
+                          value={addMedNextQty}
+                          onChange={(e) => setAddMedNextQty(e.target.value)}
+                          className="w-14 bg-slate-950 border border-indigo-900/40 rounded-lg px-2 py-1.5 text-xs text-indigo-300 text-center focus:outline-none"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleAddMedicine}
+                        className="bg-emerald-600/80 hover:bg-emerald-600 text-white font-bold px-2.5 py-1.5 rounded-lg text-xs transition-colors cursor-pointer flex items-center gap-1"
                       >
-                        {allProducts.map(p => (
-                          <option key={p.id} value={p.id}>{p.name}</option>
-                        ))}
-                      </select>
+                        <Plus className="w-3.5 h-3.5" />
+                        追加
+                      </button>
                     </div>
-                    <div>
-                      <label className="text-[10px] text-slate-500 block mb-1">今回</label>
+                  </div>
+
+                  {/* 次回周期の入力 */}
+                  <div className="space-y-2 border-t border-slate-800 pt-4">
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">次回来店周期の変更</label>
+                    <div className="flex items-center gap-3">
                       <input
-                        type="number" step="0.01"
-                        value={addMedUsedQty}
-                        onChange={(e) => setAddMedUsedQty(e.target.value)}
-                        className="w-14 bg-slate-950 border border-slate-800 rounded-lg px-2 py-1.5 text-xs text-white text-center focus:outline-none"
+                        type="number"
+                        required
+                        min="0"
+                        value={visitNextInterval}
+                        onChange={(e) => setVisitNextInterval(Math.max(0, parseInt(e.target.value) || 0))}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none"
                       />
+                      <span className="text-sm text-slate-400 font-medium shrink-0">日周期</span>
                     </div>
-                    <div>
-                      <label className="text-[10px] text-indigo-400 block mb-1">次回</label>
-                      <input
-                        type="number" step="0.01"
-                        value={addMedNextQty}
-                        onChange={(e) => setAddMedNextQty(e.target.value)}
-                        className="w-14 bg-slate-950 border border-indigo-900/40 rounded-lg px-2 py-1.5 text-xs text-indigo-300 text-center focus:outline-none"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleAddMedicine}
-                      className="bg-emerald-600/80 hover:bg-emerald-600 text-white font-bold px-2.5 py-1.5 rounded-lg text-xs transition-colors cursor-pointer flex items-center gap-1"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      追加
-                    </button>
+                    <p className="text-[10px] text-slate-500">
+                      ※ 周期を「0」に設定すると「来店不要（非アクティブ）」となります。
+                    </p>
                   </div>
                 </div>
 
-                {/* 次回周期の入力 */}
-                <div className="space-y-2 border-t border-slate-800 pt-4">
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">次回来店周期の変更</label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="number"
-                      required
-                      min="0"
-                      value={visitNextInterval}
-                      onChange={(e) => setVisitNextInterval(Math.max(0, parseInt(e.target.value) || 0))}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none"
-                    />
-                    <span className="text-sm text-slate-400 font-medium shrink-0">日周期</span>
-                  </div>
-                  <p className="text-[10px] text-slate-500">
-                    ※ 周期を「0」に設定すると「来店不要（非アクティブ）」となります。
-                  </p>
+                <div className="p-6 bg-slate-950/50 border-t border-slate-800 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setVisitModalCustomer(null)}
+                    className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold px-4 py-2 rounded-xl text-xs transition-colors cursor-pointer"
+                  >
+                    キャンセル
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={!!actionLoading}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl text-xs transition-all active:scale-98 flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                  >
+                    来店完了を登録
+                  </button>
                 </div>
-              </div>
-
-              <div className="p-6 bg-slate-950/50 border-t border-slate-800 flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setVisitModalCustomer(null)}
-                  className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold px-4 py-2 rounded-xl text-xs transition-colors cursor-pointer"
-                >
-                  キャンセル
-                </button>
-                <button
-                  type="submit"
-                  disabled={!!actionLoading}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl text-xs transition-all active:scale-98 flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
-                >
-                  来店完了を登録
-                </button>
-              </div>
-            </form>
+              </form>
+            )}
           </div>
         </div>
       )}

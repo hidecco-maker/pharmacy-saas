@@ -243,6 +243,81 @@ async function handleEvent(event, tenant, client) {
     }
 
     // ================================================================
+    // 定期送信セットアップセッション
+    // ================================================================
+
+    // --- 定期送信 Q1: 送信時刻入力待ち ---
+    if (session && session.step === 'awaiting_schedule_time') {
+      if (Date.now() > session.expireAt) {
+        authSessions.delete(sessionKey);
+        replyMessage = { type: 'text', text: '⏰ タイムアウトしました。もう一度「定期送信開始」から設定してください。' };
+        await replyMessageWithRetry(client, event.replyToken, replyMessage);
+        return;
+      }
+      // 複数時刻を改行またはカンマで区切って入力できる
+      const timeLines = userText.split(/[\n,]/).map(t => t.trim()).filter(Boolean);
+      const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
+      const invalidTimes = timeLines.filter(t => !timeRegex.test(t));
+      if (timeLines.length === 0 || invalidTimes.length > 0) {
+        replyMessage = {
+          type: 'text',
+          text: `⚠️ 時刻の形式が正しくありません。\nHH:MM（24時間表記）で入力してください。\n\n例）\n08:30\n20:30\n\n（複数設定する場合は改行で区切ってください）`
+        };
+        await replyMessageWithRetry(client, event.replyToken, replyMessage);
+        return;
+      }
+      const sendTimes = timeLines.join(',');
+      // Q2へ遷移
+      authSessions.set(sessionKey, {
+        step: 'awaiting_schedule_content',
+        schedulerTargetId: session.schedulerTargetId,
+        sendTimes,
+        expireAt: Date.now() + SESSION_TTL_MS
+      });
+      const timeDisplay = timeLines.map(t => `  ・${t}`).join('\n');
+      replyMessage = {
+        type: 'text',
+        text: `⏰ 送信時刻を設定しました：\n${timeDisplay}\n\n次に送信内容を番号で選択してください。\n\n１ → 未処理タスク＋本日タスク\n２ → 未処理タスクのみ\n３ → 本日タスクのみ`
+      };
+      await replyMessageWithRetry(client, event.replyToken, replyMessage);
+      return;
+    }
+
+    // --- 定期送信 Q2: 内容種別入力待ち ---
+    if (session && session.step === 'awaiting_schedule_content') {
+      if (Date.now() > session.expireAt) {
+        authSessions.delete(sessionKey);
+        replyMessage = { type: 'text', text: '⏰ タイムアウトしました。もう一度「定期送信開始」から設定してください。' };
+        await replyMessageWithRetry(client, event.replyToken, replyMessage);
+        return;
+      }
+      const contentType = parseInt(userText.trim(), 10);
+      if (![1, 2, 3].includes(contentType)) {
+        replyMessage = {
+          type: 'text',
+          text: '⚠️ 1・2・3のいずれかの番号を送信してください。\n\n１ → 未処理タスク＋本日タスク\n２ → 未処理タスクのみ\n３ → 本日タスクのみ'
+        };
+        await replyMessageWithRetry(client, event.replyToken, replyMessage);
+        return;
+      }
+      // 登録実行
+      const registered = registerScheduler(tenantDb, session.schedulerTargetId, session.sendTimes, contentType);
+      authSessions.delete(sessionKey);
+      const contentLabels = { 1: '未処理タスク＋本日タスク', 2: '未処理タスクのみ', 3: '本日タスクのみ' };
+      const timeList = session.sendTimes.split(',').map(t => `  ・${t}`).join('\n');
+      if (registered) {
+        replyMessage = {
+          type: 'text',
+          text: `✅ 定期送信を設定しました！\n\n🕐 送信時刻：\n${timeList}\n📋 内容：${contentLabels[contentType]}\n\n日曜・祝日はお休みです。\n変更する場合は「定期送信開始」で再設定、停止する場合は「定期送信終了」を送信してください。`
+        };
+      } else {
+        replyMessage = { type: 'text', text: '❌ 定期送信の登録に失敗しました。時間をおいて再度お試しください。' };
+      }
+      await replyMessageWithRetry(client, event.replyToken, replyMessage);
+      return;
+    }
+
+    // ================================================================
     // STEP 1: 店舗slug 入力 → 認証フロー開始
     // ================================================================
     // テナントのslugかどうか確認（システムDBで検索）
@@ -295,21 +370,21 @@ async function handleEvent(event, tenant, client) {
     }
 
     // ================================================================
-    // 定期送信開始コマンド（認証済みユーザーのみ）
+    // 定期送信開始コマンド（認証済みユーザーのみ）→ セットアップフロー開始
     // グループラインの場合はgroupIdを、ルームの場合はroomIdを、
     // 個人の場合はuserIdを宛先として登録する
     // ================================================================
     if (userText === '定期送信開始') {
-      const registered = registerScheduler(tenantDb, schedulerTargetId);
-      if (registered) {
-        const targetLabel =
-          event.source.type === 'group' ? 'このグループ'
-          : event.source.type === 'room' ? 'このルーム'
-          : 'あなた';
-        replyMessage = { type: 'text', text: `📢 毎朝8時（日・祝除く）の来店予定（未来店）通知を${targetLabel}へ開始しました。` };
-      } else {
-        replyMessage = { type: 'text', text: '定期送信の登録に失敗しました。' };
-      }
+      // セットアップセッション開始（Q1: 送信時刻）
+      authSessions.set(sessionKey, {
+        step: 'awaiting_schedule_time',
+        schedulerTargetId,
+        expireAt: Date.now() + SESSION_TTL_MS
+      });
+      replyMessage = {
+        type: 'text',
+        text: '🔔 定期送信のセットアップを開始します。\n\n【Q1】毎日の送信時間を必要な回数分、24時間表記で教えてください。\n\n例）\n08:30\n20:30\n\n（複数設定する場合は改行で区切ってください）'
+      };
       await replyMessageWithRetry(client, event.replyToken, replyMessage);
       return;
     }
@@ -334,7 +409,7 @@ async function handleEvent(event, tenant, client) {
 
     // ヘルプコマンド
     if (userText === 'ヘルプ' || userText === 'help') {
-      const helpText = `【利用可能なコマンド一覧】\n\n📦 在庫管理\n・「欠品」または「欠品リスト」\n・「欠品登録 [商品名]」\n・「欠品解消 [商品名]」\n・「不動在庫」\n\n📅 来局管理\n・「来局」または「来局予定」\n・「来局登録 [名前] [周期(日)]」\n・「来局周期変更 [名前] [新周期(日)]」\n・「来局削除 [名前]」\n\n🔔 通知設定\n・「定期送信開始」（毎朝8時の通知）\n・「定期送信終了」\n\n🚪 その他\n・「退社」（アカウント削除）\n・「こんにちは」（疎通確認）`;
+      const helpText = `【利用可能なコマンド一覧】\n\n📦 在庫管理\n・「欠品」または「欠品リスト」\n・「欠品登録 [商品名]」\n・「欠品解消 [商品名]」\n・「不動在庫」\n\n📅 来局管理\n・「来局」または「来局予定」\n・「来局登録 [名前] [周期(日)]」\n・「来局周期変更 [名前] [新周期(日)]」\n・「来局削除 [名前]」\n\n🔔 通知設定\n・「定期送信開始」（送信時刻・内容を対話設定）\n・「定期送信終了」（通知停止）\n\n🚪 その他\n・「退社」（アカウント削除）\n・「こんにちは」（疎通確認）`;
       replyMessage = { type: 'text', text: helpText };
       await replyMessageWithRetry(client, event.replyToken, replyMessage);
       return;
