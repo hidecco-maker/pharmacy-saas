@@ -111,6 +111,23 @@ function unregisterScheduler(db, lineUserId) {
 }
 
 /**
+ * データベースの日付文字列やタイムゾーン表記から、JST（日本時間）基準の YYYY-MM-DD を取得する
+ * @param {string|Date} dateInput
+ * @returns {string} YYYY-MM-DD
+ */
+function getJSTDateString(dateInput) {
+  if (!dateInput) return '';
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return '';
+  // JSTに補正（+9時間）
+  const jst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
+  const year = jst.getUTCFullYear();
+  const month = String(jst.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(jst.getUTCDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
  * 本日予定の顧客リストを取得する
  * @param {import('better-sqlite3').Database} db テナントDB
  * @param {string} todayStr YYYY-MM-DD
@@ -124,7 +141,7 @@ function getTodayCustomers(db, todayStr) {
   `).all();
 
   return customers
-    .filter(c => c.nextVisitDate && c.nextVisitDate.split('T')[0] === todayStr)
+    .filter(c => c.nextVisitDate && getJSTDateString(c.nextVisitDate) === todayStr)
     .map(c => c.name);
 }
 
@@ -144,10 +161,10 @@ function getOverdueCustomersByDate(db, todayStr) {
   const grouped = {};
   for (const c of customers) {
     if (!c.nextVisitDate) continue;
-    const dateStr = c.nextVisitDate.split('T')[0];
-    if (dateStr >= todayStr) continue; // 今日以降はスキップ
-    if (!grouped[dateStr]) grouped[dateStr] = [];
-    grouped[dateStr].push(c.name);
+    const jstDateStr = getJSTDateString(c.nextVisitDate);
+    if (!jstDateStr || jstDateStr >= todayStr) continue; // 今日以降はスキップ
+    if (!grouped[jstDateStr]) grouped[jstDateStr] = [];
+    grouped[jstDateStr].push(c.name);
   }
 
   // 日付昇順でソート
