@@ -16,7 +16,6 @@ env:
   REGISTRY: ghcr.io
   IMAGE_WEB: ghcr.io/${{ github.repository_owner }}/pharmacy-saas-web
   IMAGE_LINEBOT: ghcr.io/${{ github.repository_owner }}/pharmacy-saas-linebot
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   # ============================================================
@@ -63,7 +62,7 @@ jobs:
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
 
       - name: "Web: Build and push image"
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ./apps/web
           file: ./apps/web/Dockerfile
@@ -87,7 +86,7 @@ jobs:
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
 
       - name: "Linebot: Build and push image"
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ./apps/linebot
           file: ./apps/linebot/Dockerfile
