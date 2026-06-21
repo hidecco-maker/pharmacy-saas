@@ -560,14 +560,14 @@ export default function TenantCalendar() {
               <div className="flex items-center justify-between mb-1.5">
                 <span className={`text-xs font-bold ${
                   isToday
-                    ? 'bg-indigo-500 text-white w-5 h-5 flex items-center justify-center rounded-full'
+                    ? 'bg-indigo-500 text-white px-1.5 h-5 flex items-center justify-center rounded-full'
                     : day.getDay() === 0 || holidayName
                     ? 'text-rose-400'
                     : day.getDay() === 6
                     ? 'text-blue-400'
                     : 'text-slate-300'
                 }`}>
-                  {day.getDate()}
+                  {day.getDate() === 1 || idx === 0 ? `${day.getMonth() + 1}/${day.getDate()}` : day.getDate()}
                 </span>
                 <div className="flex items-center gap-1">
                   {holidayName && (

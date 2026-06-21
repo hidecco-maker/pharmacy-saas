@@ -7,11 +7,14 @@ import { isAdminCredentials } from '@/lib/auth';
 import { systemDb } from '@/lib/system-db';
 import { getTenantDb } from '@/lib/tenant-db';
 
-// IPごとのログイン失敗記録を保持するメモリキャッシュ
-const loginAttempts = new Map<string, { count: number; blockUntil: number }>();
+// IPごとのログイン失敗記録（管理者ログイン用）
+const adminLoginAttempts = new Map<string, { count: number; blockUntil: number }>();
 
-function checkLoginBlock(ip: string): { blocked: boolean; timeLeftMinutes: number } {
-  const record = loginAttempts.get(ip);
+// テナントIDごとのログイン失敗記録（テナントユーザーログイン用）
+const tenantLoginAttempts = new Map<string, { count: number; blockUntil: number }>();
+
+function checkLoginBlock(key: string, store: Map<string, { count: number; blockUntil: number }>): { blocked: boolean; timeLeftMinutes: number } {
+  const record = store.get(key);
   if (!record) return { blocked: false, timeLeftMinutes: 0 };
 
   const now = Date.now();
@@ -21,12 +24,12 @@ function checkLoginBlock(ip: string): { blocked: boolean; timeLeftMinutes: numbe
   return { blocked: false, timeLeftMinutes: 0 };
 }
 
-function recordLoginAttempt(ip: string, success: boolean) {
+function recordLoginAttempt(key: string, success: boolean, store: Map<string, { count: number; blockUntil: number }>) {
   const now = Date.now();
-  const record = loginAttempts.get(ip) || { count: 0, blockUntil: 0 };
+  const record = store.get(key) || { count: 0, blockUntil: 0 };
 
   if (success) {
-    loginAttempts.delete(ip);
+    store.delete(key);
     return;
   }
 
@@ -34,20 +37,12 @@ function recordLoginAttempt(ip: string, success: boolean) {
   if (record.count >= 5) {
     record.blockUntil = now + 15 * 60 * 1000; // 15分ブロック
   }
-  loginAttempts.set(ip, record);
+  store.set(key, record);
 }
 
 export async function POST(request: Request) {
   try {
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || '127.0.0.1';
-
-    const blockStatus = checkLoginBlock(ip);
-    if (blockStatus.blocked) {
-      return NextResponse.json(
-        { error: `ログイン試行回数が上限に達しました。${blockStatus.timeLeftMinutes}分後に再度お試しください。` },
-        { status: 429 }
-      );
-    }
 
     const { email, password, tenantId, isAdmin } = await request.json();
 
@@ -57,13 +52,20 @@ export async function POST(request: Request) {
 
     const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
 
-    // スーパー管理者ログイン
+    // スーパー管理者ログイン（IPベースのロック）
     if (isAdmin) {
+      const adminBlockStatus = checkLoginBlock(ip, adminLoginAttempts);
+      if (adminBlockStatus.blocked) {
+        return NextResponse.json(
+          { error: `ログイン試行回数が上限に達しました。${adminBlockStatus.timeLeftMinutes}分後に再度お試しください。` },
+          { status: 429 }
+        );
+      }
       if (!isAdminCredentials(email, password)) {
-        recordLoginAttempt(ip, false);
+        recordLoginAttempt(ip, false, adminLoginAttempts);
         return NextResponse.json({ error: 'メールアドレスまたはパスワードが違います' }, { status: 401 });
       }
-      recordLoginAttempt(ip, true);
+      recordLoginAttempt(ip, true, adminLoginAttempts);
       session.isLoggedIn = true;
       session.isAdmin = true;
       session.userEmail = email;
@@ -78,13 +80,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '店舗IDを入力してください' }, { status: 400 });
     }
 
+    // テナントIDベースのロックチェック
+    const tenantLockKey = `tenant:${tenantId.trim()}`;
+    const tenantBlockStatus = checkLoginBlock(tenantLockKey, tenantLoginAttempts);
+    if (tenantBlockStatus.blocked) {
+      return NextResponse.json(
+        { error: `この店舗のログイン試行回数が上限に達しました。${tenantBlockStatus.timeLeftMinutes}分後に再度お試しください。` },
+        { status: 429 }
+      );
+    }
+
     // テナントの存在確認（スラッグで検索）
     const tenant = await systemDb.tenant.findFirst({
       where: { slug: tenantId.trim(), isActive: true },
     });
 
     if (!tenant) {
-      recordLoginAttempt(ip, false);
+      recordLoginAttempt(tenantLockKey, false, tenantLoginAttempts);
       return NextResponse.json({ error: '店舗IDが見つかりません' }, { status: 404 });
     }
 
@@ -93,17 +105,17 @@ export async function POST(request: Request) {
     const user = await db.user.findUnique({ where: { email } });
 
     if (!user) {
-      recordLoginAttempt(ip, false);
+      recordLoginAttempt(tenantLockKey, false, tenantLoginAttempts);
       return NextResponse.json({ error: 'メールアドレスまたはパスワードが違います' }, { status: 401 });
     }
 
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) {
-      recordLoginAttempt(ip, false);
+      recordLoginAttempt(tenantLockKey, false, tenantLoginAttempts);
       return NextResponse.json({ error: 'メールアドレスまたはパスワードが違います' }, { status: 401 });
     }
 
-    recordLoginAttempt(ip, true);
+    recordLoginAttempt(tenantLockKey, true, tenantLoginAttempts);
     session.isLoggedIn = true;
     session.isAdmin = false;
     session.tenantId = tenant.id;
