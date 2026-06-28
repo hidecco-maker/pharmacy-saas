@@ -5,6 +5,7 @@ const { messagingApi } = require('@line/bot-sdk');
 const path = require('path');
 const Database = require('better-sqlite3');
 const fs = require('fs');
+const { readCalendar, generateFlexCalendar } = require('./calendar');
 
 function getJSTDate() {
   const now = new Date();
@@ -59,6 +60,76 @@ function ensureScheduleTable(db) {
     }
   } catch (err) {
     console.error('[Scheduler] ensureScheduleTable error:', err);
+  }
+}
+
+/**
+ * テナントDBの LineWeeklyScheduleConfig テーブルを作成・マイグレーションする
+ * @param {import('better-sqlite3').Database} db テナントDB
+ */
+function ensureWeeklyScheduleTable(db) {
+  try {
+    db.prepare(`
+      CREATE TABLE IF NOT EXISTS LineWeeklyScheduleConfig (
+        id          TEXT PRIMARY KEY,
+        lineUserId  TEXT UNIQUE NOT NULL,
+        dayOfWeek   INTEGER NOT NULL,
+        sendTime    TEXT NOT NULL,
+        isActive    INTEGER NOT NULL DEFAULT 1,
+        createdAt   TEXT NOT NULL DEFAULT (datetime('now')),
+        updatedAt   TEXT NOT NULL DEFAULT (datetime('now'))
+      )
+    `).run();
+  } catch (err) {
+    console.error('[Scheduler] ensureWeeklyScheduleTable error:', err);
+  }
+}
+
+/**
+ * 毎週の定期送信を設定・登録する
+ * @param {import('better-sqlite3').Database} db テナントDB
+ * @param {string} lineUserId LINE ID
+ * @param {number} dayOfWeek 曜日番号 (0=日, 1=月, ..., 6=土)
+ * @param {string} sendTime 送信時間 ("HH:MM")
+ * @returns {boolean}
+ */
+function registerWeeklyScheduler(db, lineUserId, dayOfWeek, sendTime) {
+  try {
+    ensureWeeklyScheduleTable(db);
+    db.prepare(`
+      INSERT INTO LineWeeklyScheduleConfig (id, lineUserId, dayOfWeek, sendTime, isActive, createdAt, updatedAt)
+      VALUES (lower(hex(randomblob(16))), ?, ?, ?, 1, datetime('now'), datetime('now'))
+      ON CONFLICT(lineUserId) DO UPDATE SET
+        dayOfWeek = excluded.dayOfWeek,
+        sendTime = excluded.sendTime,
+        isActive = 1,
+        updatedAt = datetime('now')
+    `).run(lineUserId, dayOfWeek, sendTime);
+    return true;
+  } catch (err) {
+    console.error('[Scheduler] registerWeeklyScheduler error:', err);
+    return false;
+  }
+}
+
+/**
+ * 毎週の定期送信を終了する
+ * @param {import('better-sqlite3').Database} db テナントDB
+ * @param {string} lineUserId LINE ID
+ * @returns {boolean}
+ */
+function unregisterWeeklyScheduler(db, lineUserId) {
+  try {
+    ensureWeeklyScheduleTable(db);
+    const result = db.prepare(`
+      UPDATE LineWeeklyScheduleConfig
+      SET isActive = 0, updatedAt = datetime('now')
+      WHERE lineUserId = ?
+    `).run(lineUserId);
+    return result.changes > 0;
+  } catch (err) {
+    console.error('[Scheduler] unregisterWeeklyScheduler error:', err);
+    return false;
   }
 }
 
@@ -229,10 +300,6 @@ async function runScheduleJobAtCurrentMinute(systemDb, dataRoot) {
     const today = getJSTDate();
     const dayOfWeek = today.getDay();
 
-    // 日曜・祝日はスキップ
-    if (dayOfWeek === 0) return;
-    if (isHoliday(today)) return;
-
     const hh = String(today.getHours()).padStart(2, '0');
     const mm = String(today.getMinutes()).padStart(2, '0');
     const currentTime = `${hh}:${mm}`;
@@ -252,18 +319,30 @@ async function runScheduleJobAtCurrentMinute(systemDb, dataRoot) {
 
       const db = new Database(dbPath, { fileMustExist: true });
       ensureScheduleTable(db);
+      ensureWeeklyScheduleTable(db);
 
-      // 現在時刻を sendTimes に含む・かつ isActive なレコードを抽出
-      const allConfigs = db.prepare(
-        `SELECT lineUserId, sendTimes, contentType FROM LineScheduleConfig WHERE isActive = 1`
+      // Check daily configs (skipping Sundays and Holidays)
+      const isDailyDay = dayOfWeek !== 0 && !isHoliday(today);
+      let matchingDailyConfigs = [];
+      if (isDailyDay) {
+        const allConfigs = db.prepare(
+          `SELECT lineUserId, sendTimes, contentType FROM LineScheduleConfig WHERE isActive = 1`
+        ).all();
+        matchingDailyConfigs = allConfigs.filter(cfg => {
+          const times = (cfg.sendTimes || '08:00').split(',').map(t => t.trim());
+          return times.includes(currentTime);
+        });
+      }
+
+      // Check weekly configs (matching dayOfWeek and sendTime)
+      const allWeeklyConfigs = db.prepare(
+        `SELECT lineUserId, dayOfWeek, sendTime FROM LineWeeklyScheduleConfig WHERE isActive = 1`
       ).all();
-
-      const matchingConfigs = allConfigs.filter(cfg => {
-        const times = (cfg.sendTimes || '08:00').split(',').map(t => t.trim());
-        return times.includes(currentTime);
+      const matchingWeeklyConfigs = allWeeklyConfigs.filter(cfg => {
+        return cfg.dayOfWeek === dayOfWeek && cfg.sendTime === currentTime;
       });
 
-      if (matchingConfigs.length === 0) {
+      if (matchingDailyConfigs.length === 0 && matchingWeeklyConfigs.length === 0) {
         db.close();
         continue;
       }
@@ -276,7 +355,8 @@ async function runScheduleJobAtCurrentMinute(systemDb, dataRoot) {
         channelAccessToken: tenant.lineChannelAccessToken
       });
 
-      for (const cfg of matchingConfigs) {
+      // Send daily schedules
+      for (const cfg of matchingDailyConfigs) {
         const messageText = buildMessageText(
           todayList,
           overdueGroups,
@@ -291,6 +371,42 @@ async function runScheduleJobAtCurrentMinute(systemDb, dataRoot) {
           console.log(`[Scheduler] 送信成功: テナント=${tenant.slug}, 宛先=${cfg.lineUserId}, 時刻=${currentTime}`);
         } catch (err) {
           console.error(`[Scheduler] 送信失敗: テナント=${tenant.slug}, 宛先=${cfg.lineUserId}`, err);
+        }
+      }
+
+      // Send weekly schedules
+      if (matchingWeeklyConfigs.length > 0) {
+        const calendarList = await readCalendar(tenant.id);
+        const flexCalendarMessage = generateFlexCalendar(calendarList);
+
+        const totalOverdue = overdueGroups.reduce((sum, g) => sum + g.names.length, 0);
+        let overdueText = `【未処理タスク】・・・${totalOverdue}件\n`;
+        if (overdueGroups.length === 0) {
+          overdueText += '（未処理の来局予定はありません）';
+        } else {
+          const lines = [];
+          for (const group of overdueGroups) {
+            const [, m, d] = group.date.split('-');
+            const label = `${parseInt(m, 10)}/${parseInt(d, 10)}`;
+            lines.push(`●${label}・・・${group.names.length}件`);
+            group.names.forEach(name => lines.push(`・${name}`));
+          }
+          overdueText += lines.join('\n');
+        }
+
+        for (const cfg of matchingWeeklyConfigs) {
+          try {
+            await client.pushMessage({
+              to: cfg.lineUserId,
+              messages: [
+                flexCalendarMessage,
+                { type: 'text', text: overdueText }
+              ]
+            });
+            console.log(`[Scheduler] 週予定送信成功: テナント=${tenant.slug}, 宛先=${cfg.lineUserId}, 曜日=${dayOfWeek}, 時刻=${currentTime}`);
+          } catch (err) {
+            console.error(`[Scheduler] 週予定送信失敗: テナント=${tenant.slug}, 宛先=${cfg.lineUserId}`, err);
+          }
         }
       }
     }
@@ -316,7 +432,10 @@ function initScheduler(systemDb, dataRoot) {
 module.exports = {
   registerScheduler,
   unregisterScheduler,
+  registerWeeklyScheduler,
+  unregisterWeeklyScheduler,
   ensureScheduleTable,
+  ensureWeeklyScheduleTable,
   initScheduler,
   runScheduleJobAtCurrentMinute, // テスト用にエクスポート
 };

@@ -7,7 +7,7 @@ const { middleware, messagingApi } = require('@line/bot-sdk');
 const { handleStockMessage } = require('./lib/stock');
 const { handleCalendarMessage } = require('./lib/calendar');
 const { isWhitelisted, addToWhitelist, removeFromWhitelist, ensureWhitelistTable } = require('./lib/whitelist');
-const { registerScheduler, unregisterScheduler, initScheduler } = require('./lib/scheduler');
+const { registerScheduler, unregisterScheduler, initScheduler, registerWeeklyScheduler, unregisterWeeklyScheduler } = require('./lib/scheduler');
 
 const app = express();
 const PORT = process.env.PORT || 3005;
@@ -246,6 +246,72 @@ async function handleEvent(event, tenant, client) {
     // 定期送信セットアップセッション
     // ================================================================
 
+    // --- 毎週定期送信 Q1: 曜日入力待ち ---
+    if (session && session.step === 'awaiting_weekly_day') {
+      if (Date.now() > session.expireAt) {
+        authSessions.delete(sessionKey);
+        replyMessage = { type: 'text', text: '⏰ タイムアウトしました。もう一度「毎週定期送信」から設定してください。' };
+        await replyMessageWithRetry(client, event.replyToken, replyMessage);
+        return;
+      }
+      const dayMap = { '日': 0, '月': 1, '火': 2, '水': 3, '木': 4, '金': 5, '土': 6 };
+      const parsedDay = userText.trim();
+      const dayOfWeek = dayMap[parsedDay];
+      if (dayOfWeek === undefined) {
+        replyMessage = {
+          type: 'text',
+          text: '⚠️ 曜日が正しくありません。\n（日、月、火、水、木、金、土 から選択してください）'
+        };
+        await replyMessageWithRetry(client, event.replyToken, replyMessage);
+        return;
+      }
+      authSessions.set(sessionKey, {
+        step: 'awaiting_weekly_time',
+        schedulerTargetId: session.schedulerTargetId,
+        dayOfWeek,
+        expireAt: Date.now() + SESSION_TTL_MS
+      });
+      replyMessage = {
+        type: 'text',
+        text: `📅 曜日「${parsedDay}」を受け付けました。\n時間を教えてください。\n例）08:30`
+      };
+      await replyMessageWithRetry(client, event.replyToken, replyMessage);
+      return;
+    }
+
+    // --- 毎週定期送信 Q2: 時間入力待ち ---
+    if (session && session.step === 'awaiting_weekly_time') {
+      if (Date.now() > session.expireAt) {
+        authSessions.delete(sessionKey);
+        replyMessage = { type: 'text', text: '⏰ タイムアウトしました。もう一度「毎週定期送信」から設定してください。' };
+        await replyMessageWithRetry(client, event.replyToken, replyMessage);
+        return;
+      }
+      const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
+      const parsedTime = userText.trim();
+      if (!timeRegex.test(parsedTime)) {
+        replyMessage = {
+          type: 'text',
+          text: '⚠️ 時間の形式が正しくありません。\nHH:MM（24時間表記）で入力してください。\n例）08:30'
+        };
+        await replyMessageWithRetry(client, event.replyToken, replyMessage);
+        return;
+      }
+      const registered = registerWeeklyScheduler(tenantDb, session.schedulerTargetId, session.dayOfWeek, parsedTime);
+      authSessions.delete(sessionKey);
+      const dayLabels = ['日曜日', '月曜日', '火曜日', '水曜日', '木曜日', '金曜日', '土曜日'];
+      if (registered) {
+        replyMessage = {
+          type: 'text',
+          text: `✅ 毎週定期送信を設定しました！\n\n📅 曜日：${dayLabels[session.dayOfWeek]}\n🕐 時間：${parsedTime}\n\n変更する場合は「毎週定期送信」で再設定、停止する場合は「毎週定期送信終了」を送信してください。`
+        };
+      } else {
+        replyMessage = { type: 'text', text: '❌ 毎週定期送信の登録に失敗しました。時間をおいて再度お試しください。' };
+      }
+      await replyMessageWithRetry(client, event.replyToken, replyMessage);
+      return;
+    }
+
     // --- 定期送信 Q1: 送信時刻入力待ち ---
     if (session && session.step === 'awaiting_schedule_time') {
       if (Date.now() > session.expireAt) {
@@ -389,6 +455,31 @@ async function handleEvent(event, tenant, client) {
       return;
     }
 
+    if (userText === '毎週定期送信') {
+      authSessions.set(sessionKey, {
+        step: 'awaiting_weekly_day',
+        schedulerTargetId,
+        expireAt: Date.now() + SESSION_TTL_MS
+      });
+      replyMessage = {
+        type: 'text',
+        text: '🔔 毎週定期送信のセットアップを開始します。\n\n何曜日に送信しますか？\n（日、月、火、水、木、金、土 から選択してください）'
+      };
+      await replyMessageWithRetry(client, event.replyToken, replyMessage);
+      return;
+    }
+
+    if (userText === '毎週定期送信終了') {
+      const unregistered = unregisterWeeklyScheduler(tenantDb, schedulerTargetId);
+      if (unregistered) {
+        replyMessage = { type: 'text', text: '🔇 毎週定期送信を終了しました。' };
+      } else {
+        replyMessage = { type: 'text', text: '毎週定期送信は登録されていないか、解除に失敗しました。' };
+      }
+      await replyMessageWithRetry(client, event.replyToken, replyMessage);
+      return;
+    }
+
     // ================================================================
     // 定期送信終了コマンド（認証済みユーザーのみ）
     // ================================================================
@@ -409,7 +500,7 @@ async function handleEvent(event, tenant, client) {
 
     // ヘルプコマンド
     if (userText === 'ヘルプ' || userText === 'help') {
-      const helpText = `【利用可能なコマンド一覧】\n\n📦 在庫管理\n・「欠品」または「欠品リスト」\n・「欠品登録 [商品名]」\n・「欠品解消 [商品名]」\n・「不動在庫」\n\n📅 来局管理\n・「来局」または「来局予定」\n・「来局登録 [名前] [周期(日)]」\n・「来局周期変更 [名前] [新周期(日)]」\n・「来局削除 [名前]」\n\n🔔 通知設定\n・「定期送信開始」（送信時刻・内容を対話設定）\n・「定期送信終了」（通知停止）\n\n🚪 その他\n・「退社」（アカウント削除）\n・「こんにちは」（疎通確認）`;
+      const helpText = `【利用可能なコマンド一覧】\n\n📦 在庫管理\n・「欠品」または「欠品リスト」\n・「欠品登録 [商品名]」\n・「欠品解消 [商品名]」\n・「不動在庫」\n\n📅 来局管理\n・「来局」または「来局予定」\n・「来局登録 [名前] [周期(日)]」\n・「来局周期変更 [名前] [新周期(日)]」\n・「来局削除 [名前]」\n\n🔔 通知設定\n・「定期送信開始」（送信時刻・内容を対話設定）\n・「定期送信終了」（通知停止）\n・「毎週定期送信」（曜日・時刻を対話設定）\n・「毎週定期送信終了」（毎週通知の停止）\n\n🚪 その他\n・「退社」（アカウント削除）\n・「こんにちは」（疎通確認）`;
       replyMessage = { type: 'text', text: helpText };
       await replyMessageWithRetry(client, event.replyToken, replyMessage);
       return;

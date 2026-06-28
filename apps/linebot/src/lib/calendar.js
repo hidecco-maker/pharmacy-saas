@@ -498,5 +498,6 @@ async function handleCalendarMessage(text, tenantId) {
 module.exports = {
   readCalendar,
   handleCalendarMessage,
-  addDays
+  addDays,
+  generateFlexCalendar
 };
