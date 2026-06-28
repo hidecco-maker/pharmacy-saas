@@ -88,7 +88,7 @@ function get4WeekCalendarRange() {
 /**
  * Build the LINE Flex Message for the 4-week calendar
  */
-function generateFlexCalendar(list) {
+function generateFlexCalendar(list, overdueGroups) {
   const days = get4WeekCalendarRange();
   const today = getJSTDate();
   
@@ -261,6 +261,66 @@ function generateFlexCalendar(list) {
     });
   }
 
+  // 未処理タスクブロックの構築（第2引数overdueGroupsが渡された場合のみ）
+  const overdueBlocksFlex = [];
+  if (overdueGroups) {
+    overdueBlocksFlex.push(
+      {
+        "type": "separator",
+        "margin": "lg",
+        "color": "#ecf0f1"
+      },
+      {
+        "type": "text",
+        "text": "未処理タスク",
+        "weight": "bold",
+        "size": "xs",
+        "color": "#e52b50",
+        "margin": "md"
+      }
+    );
+
+    const totalOverdue = overdueGroups.reduce((sum, g) => sum + g.names.length, 0);
+    if (totalOverdue === 0) {
+      overdueBlocksFlex.push({
+        "type": "text",
+        "text": "未処理の来局予定はありません",
+        "size": "xs",
+        "color": "#888888",
+        "style": "italic",
+        "margin": "sm"
+      });
+    } else {
+      overdueGroups.forEach((group) => {
+        const [, m, d] = group.date.split('-');
+        const label = `${parseInt(m, 10)}/${parseInt(d, 10)}`;
+        
+        overdueBlocksFlex.push({
+          "type": "box",
+          "layout": "vertical",
+          "margin": "sm",
+          "contents": [
+            {
+              "type": "text",
+              "text": `●${label} (${group.names.length}件)`,
+              "size": "xs",
+              "weight": "bold",
+              "color": "#555555"
+            },
+            {
+              "type": "text",
+              "text": group.names.map(name => `・${name}`).join('\n'),
+              "size": "xs",
+              "color": "#444444",
+              "wrap": true,
+              "margin": "xs"
+            }
+          ]
+        });
+      });
+    }
+  }
+
   return {
     "type": "flex",
     "altText": "来局予定カレンダー",
@@ -323,7 +383,8 @@ function generateFlexCalendar(list) {
             "layout": "vertical",
             "margin": "sm",
             "contents": listItemsFlex
-          }
+          },
+          ...overdueBlocksFlex
         ]
       }
     }

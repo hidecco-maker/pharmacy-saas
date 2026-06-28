@@ -377,30 +377,14 @@ async function runScheduleJobAtCurrentMinute(systemDb, dataRoot) {
       // Send weekly schedules
       if (matchingWeeklyConfigs.length > 0) {
         const calendarList = await readCalendar(tenant.id);
-        const flexCalendarMessage = generateFlexCalendar(calendarList);
-
-        const totalOverdue = overdueGroups.reduce((sum, g) => sum + g.names.length, 0);
-        let overdueText = `【未処理タスク】・・・${totalOverdue}件\n`;
-        if (overdueGroups.length === 0) {
-          overdueText += '（未処理の来局予定はありません）';
-        } else {
-          const lines = [];
-          for (const group of overdueGroups) {
-            const [, m, d] = group.date.split('-');
-            const label = `${parseInt(m, 10)}/${parseInt(d, 10)}`;
-            lines.push(`●${label}・・・${group.names.length}件`);
-            group.names.forEach(name => lines.push(`・${name}`));
-          }
-          overdueText += lines.join('\n');
-        }
+        const flexCalendarMessage = generateFlexCalendar(calendarList, overdueGroups);
 
         for (const cfg of matchingWeeklyConfigs) {
           try {
             await client.pushMessage({
               to: cfg.lineUserId,
               messages: [
-                flexCalendarMessage,
-                { type: 'text', text: overdueText }
+                flexCalendarMessage
               ]
             });
             console.log(`[Scheduler] 週予定送信成功: テナント=${tenant.slug}, 宛先=${cfg.lineUserId}, 曜日=${dayOfWeek}, 時刻=${currentTime}`);
