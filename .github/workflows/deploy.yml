@@ -53,7 +53,7 @@ jobs:
       # =========================================================
       - name: "Web: Extract image metadata"
         id: meta-web
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.IMAGE_WEB }}
           tags: |
@@ -77,7 +77,7 @@ jobs:
       # =========================================================
       - name: "Linebot: Extract image metadata"
         id: meta-linebot
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.IMAGE_LINEBOT }}
           tags: |
