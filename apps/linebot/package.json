@@ -11,7 +11,7 @@
     "@line/bot-sdk": "^9.4.0",
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^11.5.0",
-    "dotenv": "^16.4.5",
+    "dotenv": "^17.4.2",
     "express": "^4.21.1",
     "japanese-holidays": "^1.0.10",
     "node-cron": "^4.2.1"
