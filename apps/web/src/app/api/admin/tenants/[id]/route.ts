@@ -10,12 +10,33 @@ export async function PUT(
   await requireAdmin();
   const { id } = await params;
   const body = await request.json();
-  const { displayName, industry, lineChannelSecret, lineChannelAccessToken, isActive } = body;
+  const { slug, displayName, industry, lineChannelSecret, lineChannelAccessToken, isActive } = body;
+
+  // slug（店舗ID）のバリデーション
+  if (slug !== undefined) {
+    if (!/^[a-z0-9-]+$/.test(slug)) {
+      return NextResponse.json(
+        { error: '店舗IDは半角英数字とハイフン（-）のみ使用できます。' },
+        { status: 400 }
+      );
+    }
+    // 重複チェック（自身を除く）
+    const existing = await systemDb.tenant.findFirst({
+      where: { slug, NOT: { id } },
+    });
+    if (existing) {
+      return NextResponse.json(
+        { error: `店舗ID「${slug}」は既に別の店舗で使用されています。` },
+        { status: 409 }
+      );
+    }
+  }
 
   try {
     const tenant = await systemDb.tenant.update({
       where: { id },
       data: {
+        slug: slug ?? undefined,
         displayName: displayName ?? undefined,
         industry: industry ?? undefined,
         lineChannelSecret: lineChannelSecret !== undefined ? lineChannelSecret : undefined,

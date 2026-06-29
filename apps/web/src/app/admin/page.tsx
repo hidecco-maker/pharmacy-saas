@@ -6,11 +6,12 @@ import {
   Plus,
   Trash2,
   Loader2,
-  CheckCircle,
-  AlertTriangle,
   ExternalLink,
   RefreshCw,
-  Power
+  Power,
+  Pencil,
+  Check,
+  X
 } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -28,6 +29,11 @@ export default function AdminDashboard() {
 
   // 作成中メッセージ
   const [creationStatus, setCreationStatus] = useState<string | null>(null);
+
+  // 店舗ID編集
+  const [editingSlugId, setEditingSlugId] = useState<string | null>(null);
+  const [editingSlugValue, setEditingSlugValue] = useState('');
+  const [slugEditError, setSlugEditError] = useState<string | null>(null);
 
   const fetchTenants = async () => {
     setLoading(true);
@@ -139,6 +145,59 @@ export default function AdminDashboard() {
     }
   };
 
+  // 店舗ID編集開始
+  const startSlugEdit = (tenant: any) => {
+    setEditingSlugId(tenant.id);
+    setEditingSlugValue(tenant.slug);
+    setSlugEditError(null);
+  };
+
+  // 店舗ID編集キャンセル
+  const cancelSlugEdit = () => {
+    setEditingSlugId(null);
+    setEditingSlugValue('');
+    setSlugEditError(null);
+  };
+
+  // 店舗ID保存
+  const handleSaveSlug = async (id: string) => {
+    const newSlug = editingSlugValue.trim().toLowerCase();
+
+    if (!newSlug) {
+      setSlugEditError('店舗IDは必須です。');
+      return;
+    }
+    if (!/^[a-z0-9-]+$/.test(newSlug)) {
+      setSlugEditError('半角英数字とハイフン（-）のみ使用できます。');
+      return;
+    }
+
+    setActionLoading(`slug-${id}`);
+    setSlugEditError(null);
+
+    try {
+      const res = await fetch(`/api/admin/tenants/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug: newSlug }),
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        await fetchTenants();
+        setEditingSlugId(null);
+        setEditingSlugValue('');
+      } else {
+        setSlugEditError(data.error || '保存に失敗しました。');
+      }
+    } catch (err) {
+      console.error(err);
+      setSlugEditError('通信エラーが発生しました。');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
     return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
@@ -177,81 +236,148 @@ export default function AdminDashboard() {
             {tenants.map((tenant) => {
               const isToggleLoading = actionLoading === `toggle-${tenant.id}`;
               const isDeleteLoading = actionLoading === `delete-${tenant.id}`;
+              const isSlugLoading = actionLoading === `slug-${tenant.id}`;
+              const isEditingSlug = editingSlugId === tenant.id;
+
               return (
                 <div
                   key={tenant.id}
-                  className={`bg-slate-950/40 border border-slate-855 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 transition-all ${
+                  className={`bg-slate-950/40 border border-slate-855 rounded-xl p-4 flex flex-col gap-3 transition-all ${
                     tenant.isActive ? 'border-slate-850' : 'border-rose-950/40 opacity-70'
                   }`}
                 >
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2.5">
-                      <h3 className="font-bold text-slate-150 text-base">{tenant.displayName}</h3>
-                      <span className="text-[9px] bg-slate-900 text-slate-400 px-2 py-0.5 rounded border border-slate-800">
-                        {tenant.industry === 'pharmacy' ? '薬局・調剤' : 'その他小売'}
-                      </span>
-                      {tenant.isActive ? (
-                        <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-500/30 font-bold">
-                          有効
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="space-y-2 flex-1 min-w-0">
+                      <div className="flex items-center gap-2.5">
+                        <h3 className="font-bold text-slate-150 text-base">{tenant.displayName}</h3>
+                        <span className="text-[9px] bg-slate-900 text-slate-400 px-2 py-0.5 rounded border border-slate-800">
+                          {tenant.industry === 'pharmacy' ? '薬局・調剤' : 'その他小売'}
                         </span>
-                      ) : (
-                        <span className="text-[9px] bg-rose-500/20 text-rose-300 px-1.5 py-0.5 rounded border border-rose-500/30 font-bold">
-                          無効化中
-                        </span>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-400">
-                      <div>店舗ID: <span className="text-indigo-400 font-mono font-semibold">{tenant.slug}</span></div>
-                      <div>登録日: <span className="text-slate-300">{formatDate(tenant.createdAt)}</span></div>
-                    </div>
-                  </div>
+                        {tenant.isActive ? (
+                          <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-500/30 font-bold">
+                            有効
+                          </span>
+                        ) : (
+                          <span className="text-[9px] bg-rose-500/20 text-rose-300 px-1.5 py-0.5 rounded border border-rose-500/30 font-bold">
+                            無効化中
+                          </span>
+                        )}
+                      </div>
 
-                  {/* アクションボタン群 */}
-                  <div className="flex items-center gap-2.5 self-end sm:self-center shrink-0">
-                    {/* 店舗画面へアクセス */}
-                    {tenant.isActive && (
-                      <a
-                        href={`/tenant/${tenant.slug}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="bg-indigo-650 hover:bg-indigo-550 text-white font-semibold px-3 py-2 rounded-lg text-xs flex items-center gap-1 shadow-md transition-all active:scale-95 cursor-pointer"
+                      {/* 店舗IDの表示 / 編集エリア */}
+                      <div className="flex items-center gap-2">
+                        {isEditingSlug ? (
+                          <div className="flex-1 space-y-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs text-slate-400 shrink-0">店舗ID:</span>
+                              <input
+                                type="text"
+                                value={editingSlugValue}
+                                onChange={(e) => {
+                                  setEditingSlugValue(e.target.value.toLowerCase());
+                                  setSlugEditError(null);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleSaveSlug(tenant.id);
+                                  if (e.key === 'Escape') cancelSlugEdit();
+                                }}
+                                disabled={isSlugLoading}
+                                autoFocus
+                                className="flex-1 bg-slate-900 border border-indigo-500 rounded-lg px-2 py-1 text-xs text-white font-mono focus:outline-none focus:border-indigo-400 min-w-0"
+                                placeholder="例: yanagiya-honten"
+                              />
+                              <button
+                                onClick={() => handleSaveSlug(tenant.id)}
+                                disabled={isSlugLoading}
+                                className="p-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors cursor-pointer shrink-0"
+                                title="保存"
+                              >
+                                {isSlugLoading ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                  <Check className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+                              <button
+                                onClick={cancelSlugEdit}
+                                disabled={isSlugLoading}
+                                className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-lg transition-colors cursor-pointer shrink-0"
+                                title="キャンセル"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                            {slugEditError && (
+                              <p className="text-rose-400 text-[10px] pl-12">{slugEditError}</p>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs text-slate-400">店舗ID:</span>
+                            <span className="text-indigo-400 font-mono font-semibold text-xs">{tenant.slug}</span>
+                            <button
+                              onClick={() => startSlugEdit(tenant)}
+                              disabled={!!actionLoading}
+                              className="p-1 text-slate-500 hover:text-indigo-400 hover:bg-indigo-500/10 rounded transition-colors cursor-pointer"
+                              title="店舗IDを編集"
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </button>
+                          </div>
+                        )}
+                        <div className="text-xs text-slate-400 ml-auto shrink-0">
+                          登録日: <span className="text-slate-300">{formatDate(tenant.createdAt)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* アクションボタン群 */}
+                    <div className="flex items-center gap-2.5 self-end sm:self-center shrink-0">
+                      {/* 店舗画面へアクセス */}
+                      {tenant.isActive && (
+                        <a
+                          href={`/tenant/${tenant.slug}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="bg-indigo-650 hover:bg-indigo-550 text-white font-semibold px-3 py-2 rounded-lg text-xs flex items-center gap-1 shadow-md transition-all active:scale-95 cursor-pointer"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          開く
+                        </a>
+                      )}
+
+                      {/* 有効/無効化スイッチ */}
+                      <button
+                        onClick={() => handleToggleActive(tenant.id, tenant.isActive)}
+                        disabled={!!actionLoading}
+                        className={`p-2 rounded-lg border transition-all cursor-pointer ${
+                          tenant.isActive
+                            ? 'bg-slate-900 hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 border-slate-800 hover:border-rose-900/30'
+                            : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
+                        }`}
+                        title={tenant.isActive ? '店舗を一時停止（無効化）' : '店舗をアクティブ化（有効化）'}
                       >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                        開く
-                      </a>
-                    )}
+                        {isToggleLoading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Power className="w-4 h-4" />
+                        )}
+                      </button>
 
-                    {/* 有効/無効化スイッチ */}
-                    <button
-                      onClick={() => handleToggleActive(tenant.id, tenant.isActive)}
-                      disabled={!!actionLoading}
-                      className={`p-2 rounded-lg border transition-all cursor-pointer ${
-                        tenant.isActive
-                          ? 'bg-slate-900 hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 border-slate-800 hover:border-rose-900/30'
-                          : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
-                      }`}
-                      title={tenant.isActive ? '店舗を一時停止（無効化）' : '店舗をアクティブ化（有効化）'}
-                    >
-                      {isToggleLoading ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Power className="w-4 h-4" />
-                      )}
-                    </button>
-
-                    {/* テナント削除 */}
-                    <button
-                      onClick={() => handleDeleteTenant(tenant.id)}
-                      disabled={!!actionLoading}
-                      className="bg-slate-900 hover:bg-rose-955/40 border border-slate-800 hover:border-rose-900 text-slate-400 hover:text-rose-400 p-2 rounded-lg transition-all cursor-pointer"
-                      title="店舗の完全削除"
-                    >
-                      {isDeleteLoading ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="w-4 h-4" />
-                      )}
-                    </button>
+                      {/* テナント削除 */}
+                      <button
+                        onClick={() => handleDeleteTenant(tenant.id)}
+                        disabled={!!actionLoading}
+                        className="bg-slate-900 hover:bg-rose-955/40 border border-slate-800 hover:border-rose-900 text-slate-400 hover:text-rose-400 p-2 rounded-lg transition-all cursor-pointer"
+                        title="店舗の完全削除"
+                      >
+                        {isDeleteLoading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
