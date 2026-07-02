@@ -8,7 +8,7 @@
     "dev": "node src/index.js"
   },
   "dependencies": {
-    "@line/bot-sdk": "^9.4.0",
+    "@line/bot-sdk": "^11.1.0",
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^11.5.0",
     "dotenv": "^16.4.5",
