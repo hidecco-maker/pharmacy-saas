@@ -6,5 +6,5 @@ export default async function TenantRootPage({
   params: Promise<{ tenantId: string }>;
 }) {
   const { tenantId } = await params;
-  redirect(`/tenant/${tenantId}/dashboard`);
+  redirect(`/tenant/${tenantId}/calendar`);
 }

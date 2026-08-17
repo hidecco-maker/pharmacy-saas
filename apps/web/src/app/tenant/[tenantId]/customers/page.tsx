@@ -457,7 +457,7 @@ export default function TenantCustomers() {
   // CSVエクスポート
   const handleExportCustomersToCsv = () => {
     let csvContent = '\uFEFF';
-    csvContent += '顧客名,フリガナ,来店周期(日),最終来店日,希望商品一覧\n';
+    csvContent += '名前,フリガナ,来店周期(日),最終来店日,希望商品一覧\n';
 
     customers.forEach(c => {
       const escapedName = c.name.includes(',') || c.name.includes('"')
@@ -575,7 +575,7 @@ export default function TenantCustomers() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-800 px-6 pt-6 pb-4 flex-shrink-0">
           <h3 className="font-bold text-slate-100 text-lg flex items-center gap-2">
             <Users className="w-5 h-5 text-indigo-400" />
-            顧客一覧 &amp; 希望商品（周期0＝来店不要）
+            顧客・薬品 管理（周期0＝来店不要）
           </h3>
           <button
             onClick={handleExportCustomersToCsv}

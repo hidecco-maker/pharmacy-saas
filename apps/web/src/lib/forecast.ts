@@ -32,11 +32,29 @@ export function calculateNextVisitDate(
     // 非アクティブ: 遠い未来の日付を返す（DBの型要件を満たすため）
     return new Date('2099-12-31T00:00:00Z');
   }
-  const base = lastVisitDate ? new Date(lastVisitDate) : getBaseDate();
-  base.setUTCHours(0, 0, 0, 0);
-  base.setDate(base.getDate() + visitInterval);
+  // タイムゾーン問題を避けるため、YYYY-MM-DD文字列を経由して計算する
+  let baseDateStr: string;
+  if (lastVisitDate) {
+    // lastVisitDate を JST の日付文字列として取り出す
+    const jst = new Date(lastVisitDate.getTime() + 9 * 60 * 60 * 1000);
+    const y = jst.getUTCFullYear();
+    const m = String(jst.getUTCMonth() + 1).padStart(2, '0');
+    const d = String(jst.getUTCDate()).padStart(2, '0');
+    baseDateStr = `${y}-${m}-${d}`;
+  } else {
+    // 今日（JST）
+    const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+    const y = jstNow.getUTCFullYear();
+    const m = String(jstNow.getUTCMonth() + 1).padStart(2, '0');
+    const d = String(jstNow.getUTCDate()).padStart(2, '0');
+    baseDateStr = `${y}-${m}-${d}`;
+  }
+  // 文字列からDate(UTC 00:00)を作り、そこに周期を加算
+  const base = new Date(`${baseDateStr}T00:00:00Z`);
+  base.setUTCDate(base.getUTCDate() + visitInterval);
   return base;
 }
+
 
 export interface ProductForecast {
   id: string;

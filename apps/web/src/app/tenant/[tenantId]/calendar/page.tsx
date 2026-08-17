@@ -143,8 +143,15 @@ export default function TenantCalendar() {
     // 完了済みカードはモーダルを開かない
     if (visit.isCompleted) return;
 
-    // 来局完了日の初期値を「本日」に設定
-    setVisitCompletedDate(todayStr);
+    // 毎回現在時刻を取得してリセット（連続押しバグ対策）
+    const freshToday = getLocalDateStr();
+    // 過去日のカードは、その日を完了日の初期値とする
+    const initialDate = visit.visitDate < freshToday ? visit.visitDate : freshToday;
+    setVisitCompletedDate(initialDate);
+    // ステップ・モードを毎回リセット
+    setVisitModalStep('confirm_date');
+    setVisitNextDirectMode(false);
+    setVisitNextDirectDate('');
 
     setVisitModalCustomer({
       customerId: visit.customerId,
@@ -355,6 +362,9 @@ export default function TenantCalendar() {
     touchTimerRef.current = setTimeout(() => {
       setIsTouchDraggingVisit(true);
       touchDragVisitRef.current = visit;
+      // スクロールを止める（iOS対策）
+      document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none';
     }, 500);
   };
 
@@ -386,7 +396,10 @@ export default function TenantCalendar() {
     if (targetDate) {
       document.querySelector(`[data-calendar-date="${targetDate}"]`)?.classList.remove(...DRAG_OVER_CLASSES);
     }
-    
+    // スクロール解除
+    document.body.style.overflow = '';
+    document.body.style.touchAction = '';
+
     if (isTouchDraggingVisit && touchDragVisitRef.current && targetDate) {
       if (touchDragVisitRef.current.visitDate !== targetDate) {
         await rescheduleVisit(touchDragVisitRef.current, targetDate);
@@ -672,7 +685,7 @@ export default function TenantCalendar() {
             {visitModalStep === 'confirm_date' && (
               <div className="p-6 space-y-5">
                 <p className="text-sm text-slate-200 font-semibold text-center">
-                  本日（{formatDateJPFull(todayStr)}）に<br />完了しましたか？
+                  本日（{formatDateJPFull(getLocalDateStr())}）に<br />完了しましたか？
                 </p>
                 <div className="flex gap-3">
                   <button

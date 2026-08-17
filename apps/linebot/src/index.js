@@ -436,6 +436,63 @@ async function handleEvent(event, tenant, client) {
     }
 
     // ================================================================
+    // 在庫検索セッション処理
+    // ================================================================
+    if (session && session.step === 'awaiting_stock_keyword') {
+      if (Date.now() > session.expireAt) {
+        authSessions.delete(sessionKey);
+        replyMessage = { type: 'text', text: '⏰ タイムアウトしました。もう一度「在庫」から検索してください。' };
+        await replyMessageWithRetry(client, event.replyToken, replyMessage);
+        return;
+      }
+
+      const keyword = userText.trim();
+      const prevKeyword = session.keyword || '';
+      const searchKeyword = prevKeyword + keyword;
+
+      // テナントDBから商品を検索
+      const tenantDb2 = getTenantDb(tenant.id);
+      let products;
+      try {
+        products = tenantDb2.prepare(
+          `SELECT name, currentStock, unit FROM "Product" WHERE name LIKE ? ORDER BY name`
+        ).all(`${searchKeyword}%`);
+        tenantDb2.close();
+      } catch (err) {
+        console.error('[在庫検索エラー]', err);
+        products = [];
+      }
+
+      authSessions.delete(sessionKey);
+
+      if (products.length === 0) {
+        replyMessage = { type: 'text', text: `「${searchKeyword}」に一致する商品が見つかりませんでした。` };
+      } else if (products.length > 10) {
+        // 多すぎる場合は絞り込みを促す（セッション継続）
+        authSessions.set(sessionKey, {
+          step: 'awaiting_stock_keyword',
+          keyword: searchKeyword,
+          expireAt: Date.now() + SESSION_TTL_MS
+        });
+        replyMessage = {
+          type: 'text',
+          text: `「${searchKeyword}」で${products.length}品目あります。\nもう1文字以上追加して送信してください。`
+        };
+      } else {
+        const lines = products.map(p => {
+          const unit = p.unit || '個';
+          return `・${p.name}：${p.currentStock}${unit}`;
+        });
+        replyMessage = {
+          type: 'text',
+          text: `📦 在庫一覧（${searchKeyword}）\n\n${lines.join('\n')}`
+        };
+      }
+      await replyMessageWithRetry(client, event.replyToken, replyMessage);
+      return;
+    }
+
+    // ================================================================
     // 定期送信開始コマンド（認証済みユーザーのみ）→ セットアップフロー開始
     // グループラインの場合はgroupIdを、ルームの場合はroomIdを、
     // 個人の場合はuserIdを宛先として登録する
@@ -500,8 +557,23 @@ async function handleEvent(event, tenant, client) {
 
     // ヘルプコマンド
     if (userText === 'ヘルプ' || userText === 'help') {
-      const helpText = `【利用可能なコマンド一覧】\n\n📦 在庫管理\n・「欠品」または「欠品リスト」\n・「欠品登録 [商品名]」\n・「欠品解消 [商品名]」\n・「不動在庫」\n\n📅 来局管理\n・「来局」または「来局予定」\n・「来局登録 [名前] [周期(日)]」\n・「来局周期変更 [名前] [新周期(日)]」\n・「来局削除 [名前]」\n\n🔔 通知設定\n・「定期送信開始」（送信時刻・内容を対話設定）\n・「定期送信終了」（通知停止）\n・「毎週定期送信」（曜日・時刻を対話設定）\n・「毎週定期送信終了」（毎週通知の停止）\n\n🚪 その他\n・「退社」（アカウント削除）\n・「こんにちは」（疎通確認）`;
+      const helpText = `【利用可能なコマンド一覧】\n\n📦 在庫管理\n・「在庫」（商品在庫を名前で検索）\n・「欠品」または「欠品リスト」\n・「欠品登録 [商品名]」\n・「欠品解消 [商品名]」\n・「不動在庫」\n\n📅 来局管理\n・「来局」または「来局予定」\n・「来局登録 [名前] [周期(日)]」\n・「来局周期変更 [名前] [新周期(日)]」\n・「来局削除 [名前]」\n\n🔔 通知設定\n・「定期送信開始」（送信時刻・内容を対話設定）\n・「定期送信終了」（通知停止）\n・「毎週定期送信」（曜日・時刻を対話設定）\n・「毎週定期送信終了」（毎週通知の停止）\n\n🚪 その他\n・「退社」（アカウント削除）\n・「こんにちは」（疎通確認）`;
       replyMessage = { type: 'text', text: helpText };
+      await replyMessageWithRetry(client, event.replyToken, replyMessage);
+      return;
+    }
+
+    // 在庫検索コマンド
+    if (userText === '在庫') {
+      authSessions.set(sessionKey, {
+        step: 'awaiting_stock_keyword',
+        keyword: '',
+        expireAt: Date.now() + SESSION_TTL_MS
+      });
+      replyMessage = {
+        type: 'text',
+        text: '🔍 商品名の最初の文字を送ってください。\n（例：「ア」「鎮痛」など）'
+      };
       await replyMessageWithRetry(client, event.replyToken, replyMessage);
       return;
     }
@@ -520,12 +592,14 @@ async function handleEvent(event, tenant, client) {
       // 疎通確認
       else if (userText === 'こんにちは') {
         replyMessage = { type: 'text', text: `こんにちは！こちらは「${tenant.displayName}」のLINE窓口です。通信疎通確認に成功しました。` };
-      } else {
-        replyMessage = { type: 'text', text: `「${userText}」\n\n「ヘルプ」と送信するとコマンド一覧を確認できます。` };
       }
+      // 未認識コマンドは無視（返信しない）
     }
 
-    await replyMessageWithRetry(client, event.replyToken, replyMessage);
+    // replyMessageがある場合のみ送信
+    if (replyMessage) {
+      await replyMessageWithRetry(client, event.replyToken, replyMessage);
+    }
 
   } catch (error) {
     console.error(`[LINE BOT ERROR] Event handling failure for tenant ${tenant.slug}:`, error);
