@@ -96,6 +96,8 @@ export default function TenantInventory() {
   const [disposals, setDisposals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const showToast = (msg: string) => { setToastMsg(msg); setTimeout(() => setToastMsg(null), 3500); };
 
   // 新規商品用
   const [newProductName, setNewProductName] = useState('');
@@ -233,7 +235,11 @@ export default function TenantInventory() {
         setNewProductName('');
         setNewProductStock('0');
         setNewProductUnit('');
+        setOpenPanel(null);
+        showToast('✅ 商品を登録しました');
         await fetchData();
+      } else {
+        showToast('❌ 商品登録に失敗しました');
       }
     } catch (err) {
       console.error(err);
@@ -261,10 +267,12 @@ export default function TenantInventory() {
         });
       }
       setPurchaseRows([{ productId: '', quantity: '10', wholesaler: '' }]);
+      setOpenPanel(null);
+      showToast('✅ 仕入れを登録しました');
       await fetchData();
     } catch (err) {
       console.error(err);
-      alert('仕入れ登録に失敗しました。');
+      showToast('❌ 仕入れ登録に失敗しました');
     } finally {
       setActionLoading(null);
     }
@@ -285,10 +293,12 @@ export default function TenantInventory() {
         });
       }
       setSaleRows([{ productId: '', quantity: '1' }]);
+      setOpenPanel(null);
+      showToast('✅ 売上を登録しました');
       await fetchData();
     } catch (err) {
       console.error(err);
-      alert('売上登録に失敗しました。');
+      showToast('❌ 売上登録に失敗しました');
     } finally {
       setActionLoading(null);
     }
@@ -309,10 +319,12 @@ export default function TenantInventory() {
         });
       }
       setDisposalRows([{ productId: '', quantity: '1', reason: '' }]);
+      setOpenPanel(null);
+      showToast('✅ 廃棄を登録しました');
       await fetchData();
     } catch (err) {
       console.error(err);
-      alert('廃棄登録に失敗しました。');
+      showToast('❌ 廃棄登録に失敗しました');
     } finally {
       setActionLoading(null);
     }
@@ -473,25 +485,31 @@ export default function TenantInventory() {
   };
   if (loading && products.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-slate-100">
-        <Loader2 className="w-12 h-12 text-indigo-500 animate-spin mb-4" />
-        <p className="text-slate-400 font-medium">在庫データを読み込んでいます...</p>
+      <div className="flex flex-col items-center justify-center py-20 text-slate-700">
+        <Loader2 className="w-12 h-12 text-sky-600 animate-spin mb-4" />
+        <p className="text-slate-500 font-medium">在庫データを読み込んでいます...</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 relative">
+      {/* トースト通知 */}
+      {toastMsg && (
+        <div className="fixed top-5 right-5 z-50 bg-white border border-sky-200 shadow-xl rounded-2xl px-5 py-3 text-sm font-semibold text-slate-700 flex items-center gap-2 animate-fade-in">
+          {toastMsg}
+        </div>
+      )}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-2xl shadow-xl">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-800 px-6 pt-6 pb-4">
-            <h3 className="font-bold text-slate-100 text-lg flex items-center gap-2">
-              <ShoppingBag className="w-5 h-5 text-indigo-400" />
+        <div className="lg:col-span-2 bg-white border border-sky-100 rounded-2xl shadow-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-sky-100 px-6 pt-6 pb-4">
+            <h3 className="font-bold text-slate-700 text-lg flex items-center gap-2">
+              <ShoppingBag className="w-5 h-5 text-sky-500" />
               商品在庫マスター（小数・マイナス対応）
             </h3>
             <button
               onClick={handleExportProductsToCsv}
-              className="flex items-center gap-1.5 self-start sm:self-center bg-indigo-650 hover:bg-indigo-550 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-md active:scale-95 cursor-pointer"
+              className="flex items-center gap-1.5 self-start sm:self-center bg-sky-600 hover:bg-sky-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-md active:scale-95 cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
               現在庫CSV出力
@@ -501,12 +519,12 @@ export default function TenantInventory() {
           {/* あいうえおインデックス + 商品リスト */}
           <div className="flex" style={{ maxHeight: '60vh' }}>
             {/* あいうえお縦インデックス */}
-            <div className="flex flex-col justify-around items-center py-3 px-1.5 border-r border-slate-800/60 select-none shrink-0">
+            <div className="flex flex-col justify-around items-center py-3 px-1.5 border-r border-sky-100/60 select-none shrink-0">
               {kanaRows.map(kana => (
                 <button
                   key={kana}
                   onClick={() => scrollToKana(kana)}
-                  className="text-[10px] font-bold text-slate-500 hover:text-indigo-400 hover:bg-indigo-500/10 w-6 h-6 flex items-center justify-center rounded transition-colors cursor-pointer"
+                  className="text-[10px] font-bold text-slate-500 hover:text-sky-500 hover:bg-sky-50 w-6 h-6 flex items-center justify-center rounded transition-colors cursor-pointer"
                   title={`${kana}行へ`}
                 >
                   {kana}
@@ -520,20 +538,20 @@ export default function TenantInventory() {
                 const isStockLoading = actionLoading === `stock-${prod.id}`;
                 const isDeleteLoading = actionLoading === `delete-product-${prod.id}`;
                 return (
-                  <div key={prod.id} data-product-name={prod.name} className="bg-slate-950/40 border border-slate-850 hover:border-slate-700 transition-all rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div key={prod.id} data-product-name={prod.name} className="bg-sky-50/60 border border-sky-100 hover:border-sky-300 transition-all rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div className="space-y-1">
-                      <h4 className="font-bold text-slate-200 text-base">{prod.name}</h4>
+                      <h4 className="font-bold text-slate-700 text-base">{prod.name}</h4>
                       <p className="text-[10px] text-slate-500">ID: {prod.id} {prod.unit ? `[単位: ${prod.unit}]` : ''}</p>
                     </div>
 
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-2">
-                        <label className="text-xs text-slate-400 font-medium">現在庫:</label>
-                        <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
+                        <label className="text-xs text-slate-500 font-medium">現在庫:</label>
+                        <div className="flex items-center bg-sky-50 border border-sky-100 rounded-lg overflow-hidden">
                           <button
                             onClick={() => handleUpdateStock(prod.id, prod.currentStock - 1)}
                             disabled={!!actionLoading}
-                            className="px-3 py-1.5 hover:bg-slate-800 text-slate-400 hover:text-white transition-all text-sm font-bold disabled:opacity-50 cursor-pointer"
+                            className="px-3 py-1.5 hover:bg-sky-100 text-slate-500 hover:text-white transition-all text-sm font-bold disabled:opacity-50 cursor-pointer"
                           >
                             -1
                           </button>
@@ -545,7 +563,7 @@ export default function TenantInventory() {
         <div className="space-y-3">
 
           {/* ヘルパーテキスト */}
-          <p className="text-xs text-slate-400 italic px-1">ℹ️ タイトルをクリックで入力欄を開開</p>
+          <p className="text-xs text-slate-500 italic px-1">ℹ️ タイトルをクリックで入力欄を開開</p>
 
           {/* 新規商品登録 */}
           <div className="bg-white border border-sky-100 rounded-2xl shadow-sm overflow-hidden">
@@ -558,7 +576,7 @@ export default function TenantInventory() {
                 <Plus className="w-4 h-4 text-sky-600" />
                 新規商品登録
               </span>
-              <span className="text-slate-400 text-xs">{openPanel === 'product' ? '▲' : '▼'}</span>
+              <span className="text-slate-500 text-xs">{openPanel === 'product' ? '▲' : '▼'}</span>
             </button>
             {openPanel === 'product' && (
               <div className="px-5 pb-5 pt-1 border-t border-sky-50">
@@ -601,7 +619,7 @@ export default function TenantInventory() {
                 <History className="w-4 h-4 text-emerald-600" />
                 仕入れ登録
               </span>
-              <span className="text-slate-400 text-xs">{openPanel === 'purchase' ? '▲' : '▼'}</span>
+              <span className="text-slate-500 text-xs">{openPanel === 'purchase' ? '▲' : '▼'}</span>
             </button>
             {openPanel === 'purchase' && (
               <div className="px-5 pb-5 pt-1 border-t border-sky-50">
@@ -654,7 +672,7 @@ export default function TenantInventory() {
                 <ShoppingBag className="w-4 h-4 text-indigo-600" />
                 売上登録（手動）
               </span>
-              <span className="text-slate-400 text-xs">{openPanel === 'sale' ? '▲' : '▼'}</span>
+              <span className="text-slate-500 text-xs">{openPanel === 'sale' ? '▲' : '▼'}</span>
             </button>
             {openPanel === 'sale' && (
               <div className="px-5 pb-5 pt-1 border-t border-sky-50">
@@ -684,7 +702,7 @@ export default function TenantInventory() {
                     <Plus className="w-3 h-3" /> 次の品目を追加
                   </button>
                   <button type="submit" disabled={actionLoading === 'add-sale'}
-                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-98 disabled:opacity-50 cursor-pointer text-sm">
+                    className="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-2 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-98 disabled:opacity-50 cursor-pointer text-sm">
                     {actionLoading === 'add-sale' ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                     まとめて売上登録
                   </button>
@@ -702,7 +720,7 @@ export default function TenantInventory() {
                 <Trash2 className="w-4 h-4 text-rose-500" />
                 廃棄登録
               </span>
-              <span className="text-slate-400 text-xs">{openPanel === 'disposal' ? '▲' : '▼'}</span>
+              <span className="text-slate-500 text-xs">{openPanel === 'disposal' ? '▲' : '▼'}</span>
             </button>
             {openPanel === 'disposal' && (
               <div className="px-5 pb-5 pt-1 border-t border-sky-50">
@@ -753,26 +771,26 @@ export default function TenantInventory() {
       {/* 仕入れ履歴 & 廃棄履歴の一覧 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* 仕入れ履歴 */}
-        <div className="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-2xl p-6 shadow-xl">
-          <h3 className="font-bold text-slate-100 text-base mb-4 border-b border-slate-800 pb-3">仕入れ履歴（直近100件）</h3>
+        <div className="bg-white border border-sky-100 rounded-2xl p-6 shadow-xl">
+          <h3 className="font-bold text-slate-700 text-base mb-4 border-b border-sky-100 pb-3">仕入れ履歴（直近100件）</h3>
           {purchases.length === 0 ? (
             <p className="text-slate-500 text-xs italic text-center py-6">仕入れ履歴はありません。</p>
           ) : (
             <div className="overflow-x-auto max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-800 text-slate-400 font-semibold uppercase">
+                  <tr className="border-b border-sky-100 text-slate-500 font-semibold uppercase">
                     <th className="py-2 px-3">日時</th>
                     <th className="py-2 px-3">商品名</th>
                     <th className="py-2 px-3">数量</th>
                     <th className="py-2 px-3">仕入れ先</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/50">
+                <tbody className="divide-y divide-sky-50">
                   {purchases.map(p => (
-                    <tr key={p.id} className="hover:bg-slate-900/35">
-                      <td className="py-2.5 px-3 text-slate-400">{formatDate(p.purchasedAt)}</td>
-                      <td className="py-2.5 px-3 font-semibold text-slate-200">{p.product?.name}</td>
+                    <tr key={p.id} className="hover:bg-sky-50/35">
+                      <td className="py-2.5 px-3 text-slate-500">{formatDate(p.purchasedAt)}</td>
+                      <td className="py-2.5 px-3 font-semibold text-slate-700">{p.product?.name}</td>
                       <td className="py-2.5 px-3 text-emerald-400 font-bold">+{formatFloat(p.quantity)}</td>
                       <td className="py-2.5 px-3 text-slate-350">{p.wholesaler}</td>
                     </tr>
@@ -784,26 +802,26 @@ export default function TenantInventory() {
         </div>
 
         {/* 廃棄履歴 */}
-        <div className="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-2xl p-6 shadow-xl">
-          <h3 className="font-bold text-slate-100 text-base mb-4 border-b border-slate-800 pb-3">廃棄履歴（直近100件）</h3>
+        <div className="bg-white border border-sky-100 rounded-2xl p-6 shadow-xl">
+          <h3 className="font-bold text-slate-700 text-base mb-4 border-b border-sky-100 pb-3">廃棄履歴（直近100件）</h3>
           {disposals.length === 0 ? (
             <p className="text-slate-500 text-xs italic text-center py-6">廃棄履歴はありません。</p>
           ) : (
             <div className="overflow-x-auto max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-800 text-slate-400 font-semibold uppercase">
+                  <tr className="border-b border-sky-100 text-slate-500 font-semibold uppercase">
                     <th className="py-2 px-3">日時</th>
                     <th className="py-2 px-3">商品名</th>
                     <th className="py-2 px-3">数量</th>
                     <th className="py-2 px-3">理由</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/50">
+                <tbody className="divide-y divide-sky-50">
                   {disposals.map(d => (
-                    <tr key={d.id} className="hover:bg-slate-900/35">
-                      <td className="py-2.5 px-3 text-slate-400">{formatDate(d.disposedAt)}</td>
-                      <td className="py-2.5 px-3 font-semibold text-slate-200">{d.product?.name}</td>
+                    <tr key={d.id} className="hover:bg-sky-50/35">
+                      <td className="py-2.5 px-3 text-slate-500">{formatDate(d.disposedAt)}</td>
+                      <td className="py-2.5 px-3 font-semibold text-slate-700">{d.product?.name}</td>
                       <td className="py-2.5 px-3 text-rose-400 font-bold">-{formatFloat(d.quantity)}</td>
                       <td className="py-2.5 px-3 text-slate-350">{d.reason || '-'}</td>
                     </tr>
@@ -816,9 +834,9 @@ export default function TenantInventory() {
       </div>
 
       {/* CSVインポート */}
-      <div className="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-2xl p-6 shadow-xl">
-        <h3 className="font-bold text-slate-100 text-base mb-4 border-b border-slate-800 pb-3 flex items-center gap-2">
-          <Upload className="w-5 h-5 text-indigo-400" />
+      <div className="bg-white border border-sky-100 rounded-2xl p-6 shadow-xl">
+        <h3 className="font-bold text-slate-700 text-base mb-4 border-b border-sky-100 pb-3 flex items-center gap-2">
+          <Upload className="w-5 h-5 text-sky-500" />
           商品マスタ CSVインポート（小数・マイナス対応）
         </h3>
         {csvMessage && (
@@ -835,11 +853,11 @@ export default function TenantInventory() {
               onClick={() => productFileRef.current?.click()}
               className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center min-h-[120px] ${
                 isDragOverProduct 
-                  ? 'border-indigo-500 bg-indigo-950/20 text-indigo-300 scale-[1.01]' 
-                  : 'border-slate-800 hover:border-slate-600 bg-slate-950/20 text-slate-400'
+                  ? 'border-sky-400 bg-indigo-950/20 text-sky-600 scale-[1.01]' 
+                  : 'border-sky-100 hover:border-sky-300 bg-sky-50/40 text-slate-500'
               }`}
             >
-              <Upload className="w-8 h-8 mb-2 text-indigo-400 animate-bounce" />
+              <Upload className="w-8 h-8 mb-2 text-sky-500 animate-bounce" />
               <p className="text-xs font-semibold">CSVファイルをドラッグ＆ドロップするか、クリックしてファイルを選択</p>
               <input
                 type="file"
@@ -851,9 +869,9 @@ export default function TenantInventory() {
             </div>
 
             <div className="relative flex items-center py-2">
-              <div className="flex-grow border-t border-slate-800"></div>
+              <div className="flex-grow border-t border-sky-100"></div>
               <span className="flex-shrink mx-4 text-slate-500 text-[10px] uppercase font-bold">または CSVテキストを直接入力</span>
-              <div className="flex-grow border-t border-slate-800"></div>
+              <div className="flex-grow border-t border-sky-100"></div>
             </div>
 
             <textarea
@@ -861,22 +879,22 @@ export default function TenantInventory() {
               value={productCsvText}
               onChange={(e) => setProductCsvText(e.target.value)}
               placeholder="商品名,現在庫数,単位&#10;アムロジピン錠,100,錠&#10;ワセリン,500.5,g"
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs focus:outline-none text-white font-mono"
+              className="w-full bg-white border border-sky-100 rounded-xl p-3 text-xs focus:outline-none text-white font-mono"
             />
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-slate-500">※ 同名商品がある場合は在庫数と単位が上書きされます。</span>
               <button
                 onClick={() => processAndImportCsv(productCsvText)}
                 disabled={actionLoading === 'import-products'}
-                className="bg-indigo-650 hover:bg-indigo-550 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+                className="bg-sky-600 hover:bg-sky-500 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
               >
                 テキストをインポート
               </button>
             </div>
           </div>
-          <div className="bg-slate-950/40 border border-slate-800 p-4 rounded-xl text-xs text-slate-400 space-y-2">
-            <p className="font-bold text-slate-200 flex items-center gap-1"><FileText className="w-3.5 h-3.5" /> フォーマット例</p>
-            <pre className="bg-slate-950 p-2 rounded text-[10px] text-indigo-300 overflow-x-auto">
+          <div className="bg-sky-50/60 border border-sky-100 p-4 rounded-xl text-xs text-slate-500 space-y-2">
+            <p className="font-bold text-slate-700 flex items-center gap-1"><FileText className="w-3.5 h-3.5" /> フォーマット例</p>
+            <pre className="bg-white p-2 rounded text-[10px] text-sky-600 overflow-x-auto">
               {"商品名,現在庫数,単位\nアムロジピン錠5mg,120,錠\nヒルドイドソフト,450.5,g"}
             </pre>
           </div>

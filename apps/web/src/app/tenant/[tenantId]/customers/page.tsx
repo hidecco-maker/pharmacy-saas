@@ -102,6 +102,8 @@ export default function TenantCustomers() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const showToast = (msg: string) => { setToastMsg(msg); setTimeout(() => setToastMsg(null), 3500); };
 
   // 顧客追加用
   const [newCustomerName, setNewCustomerName] = useState('');
@@ -357,9 +359,9 @@ export default function TenantCustomers() {
 
       if (reqRes.ok && customerRes.ok) {
         await fetchData();
-        alert('設定を保存しました。');
+        showToast('✅ 設定を保存しました');
       } else {
-        alert('設定の保存に失敗しました。');
+        showToast('❌ 設定の保存に失敗しました');
       }
     } catch (err) {
       console.error(err);
@@ -469,10 +471,11 @@ export default function TenantCustomers() {
 
       const lastVisitStr = c.lastVisitDate ? new Date(c.lastVisitDate).toISOString().split('T')[0] : '';
 
+      // インポート形式と統一: 「商品名:数量」をセミコロン区切り
       const reqsStr = c.requirements
-        .map((r: any) => `${r.product.name}(x${formatFloat(r.quantity)})`)
-        .join('; ');
-      const escapedReqsStr = reqsStr.includes(',') || reqsStr.includes('"') || reqsStr.includes(';')
+        .map((r: any) => `${r.product.name}:${formatFloat(r.quantity)}`)
+        .join(';');
+      const escapedReqsStr = reqsStr.includes(',') || reqsStr.includes('"')
         ? `"${reqsStr.replace(/"/g, '""')}"`
         : reqsStr;
 
@@ -549,37 +552,44 @@ export default function TenantCustomers() {
 
   if (loading && customers.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-slate-100">
-        <Loader2 className="w-12 h-12 text-indigo-500 animate-spin mb-4" />
-        <p className="text-slate-400 font-medium">顧客データを読み込んでいます...</p>
+      <div className="flex flex-col items-center justify-center py-20 text-slate-700">
+        <Loader2 className="w-12 h-12 text-sky-600 animate-spin mb-4" />
+        <p className="text-slate-500 font-medium">顧客データを読み込んでいます...</p>
       </div>
     );
   }
 
   return (
-    /* ============================================================
-       独立スクロールレイアウト
-       グリッドを h-[calc(100vh-8rem)] で高さ制約
-       - 左カラム: flex-col + flex-1 overflow-y-auto でリストが独立スクロール
-       - 右カラム: overflow-y-auto h-full で全カード縦スクロール
-       ============================================================ */
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-8rem)] min-h-0">
+    <div className="relative">
+      {/* トースト通知 */}
+      {toastMsg && (
+        <div className="fixed top-5 right-5 z-50 bg-white border border-sky-200 shadow-xl rounded-2xl px-5 py-3 text-sm font-semibold text-slate-700 flex items-center gap-2">
+          {toastMsg}
+        </div>
+      )}
+      {/* ============================================================
+         独立スクロールレイアウト
+         グリッドを h-[calc(100vh-8rem)] で高さ制約
+         - 左カラム: flex-col + flex-1 overflow-y-auto でリストが独立スクロール
+         - 右カラム: overflow-y-auto h-full で全カード縦スクロール
+         ============================================================ */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-8rem)] min-h-0">
 
       {/* ==============================
           左カラム：顧客一覧（独立スクロール）
           ============================== */}
-      <div className="lg:col-span-2 bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-2xl shadow-xl flex flex-col min-h-0 h-full">
+      <div className="lg:col-span-2 bg-white border border-sky-100 rounded-2xl shadow-xl flex flex-col min-h-0 h-full">
         {/* あいうえおインデックス（縦） */}
 
         {/* ヘッダー（固定） */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-800 px-6 pt-6 pb-4 flex-shrink-0">
-          <h3 className="font-bold text-slate-100 text-lg flex items-center gap-2">
-            <Users className="w-5 h-5 text-indigo-400" />
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-sky-100 px-6 pt-6 pb-4 flex-shrink-0">
+          <h3 className="font-bold text-slate-700 text-lg flex items-center gap-2">
+            <Users className="w-5 h-5 text-sky-500" />
             顧客・薬品 管理（周期0＝来店不要）
           </h3>
           <button
             onClick={handleExportCustomersToCsv}
-            className="flex items-center gap-1.5 self-start sm:self-center bg-indigo-650 hover:bg-indigo-550 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-md active:scale-95 cursor-pointer"
+            className="flex items-center gap-1.5 self-start sm:self-center bg-sky-600 hover:bg-sky-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-md active:scale-95 cursor-pointer"
           >
             <Download className="w-3.5 h-3.5" />
             顧客一覧CSV出力
@@ -589,12 +599,12 @@ export default function TenantCustomers() {
         {/* 顧客リスト（あいうえおインデックス + 独立スクロール） */}
         <div className="flex flex-1 min-h-0">
           {/* あいうえおインデックス縦バー */}
-          <div className="flex flex-col justify-around items-center py-3 px-1.5 border-r border-slate-800/60 select-none shrink-0">
+          <div className="flex flex-col justify-around items-center py-3 px-1.5 border-r border-sky-100/60 select-none shrink-0">
             {kanaRows.map(kana => (
               <button
                 key={kana}
                 onClick={() => scrollToKana(kana)}
-                className="text-[10px] font-bold text-slate-500 hover:text-indigo-400 hover:bg-indigo-500/10 w-6 h-6 flex items-center justify-center rounded transition-colors cursor-pointer"
+                className="text-[10px] font-bold text-slate-500 hover:text-sky-500 hover:bg-sky-50 w-6 h-6 flex items-center justify-center rounded transition-colors cursor-pointer"
                 title={`${kana}行へ`}
               >
                 {kana}
@@ -613,10 +623,10 @@ export default function TenantCustomers() {
                   data-customer-name={cust.name}
                   data-customer-kana={cust.nameKana}
                   onClick={() => selectCustomerForReqs(cust)}
-                  className={`border rounded-xl p-4 transition-all flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 cursor-pointer hover:border-slate-700 ${
+                  className={`border rounded-xl p-4 transition-all flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 cursor-pointer hover:border-sky-300 ${
                     isSelected
-                      ? 'bg-slate-900/80 border-indigo-500 ring-1 ring-indigo-500'
-                      : 'bg-slate-950/40 border-slate-850'
+                      ? 'bg-sky-50 border-sky-400 ring-1 ring-sky-300'
+                      : 'bg-sky-50/40 border-sky-100'
                   }`}
                 >
                   <div>
@@ -624,30 +634,30 @@ export default function TenantCustomers() {
                       <div className="text-[10px] text-slate-500 font-medium tracking-wide mb-0.5 leading-none">{cust.nameKana}</div>
                     )}
                     <div className="flex items-center gap-2">
-                      <h4 className="font-bold text-slate-100 text-base">{cust.name}</h4>
+                      <h4 className="font-bold text-slate-700 text-base">{cust.name}</h4>
                       {cust.visitInterval === 0 ? (
-                        <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700 font-bold">
+                        <span className="text-[10px] bg-sky-100 text-slate-500 px-2 py-0.5 rounded border border-slate-700 font-bold">
                           来店不要（非アクティブ）
                         </span>
                       ) : (
-                        <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded border border-indigo-500/30">
+                        <span className="text-[10px] bg-sky-100 text-sky-600 px-2 py-0.5 rounded border border-sky-200">
                           予定日: {formatDate(cust.nextVisitDate)}
                         </span>
                       )}
                     </div>
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2.5 text-xs text-slate-400">
-                      <div>周期: <span className="text-slate-200 font-semibold">{cust.visitInterval} 日</span></div>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2.5 text-xs text-slate-500">
+                      <div>周期: <span className="text-slate-700 font-semibold">{cust.visitInterval} 日</span></div>
                       {cust.lastVisitDate && (
-                        <div>最終来店: <span className="text-slate-200 font-semibold">{formatDate(cust.lastVisitDate)}</span></div>
+                        <div>最終来店: <span className="text-slate-700 font-semibold">{formatDate(cust.lastVisitDate)}</span></div>
                       )}
                     </div>
 
                     {/* 希望商品のプレビュー */}
                     <div className="mt-3 flex flex-wrap gap-1.5">
                       {cust.requirements.map((req: any, rIdx: number) => (
-                        <span key={rIdx} className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-900 border border-slate-800 text-slate-300 text-[10px] rounded">
+                        <span key={rIdx} className="inline-flex items-center gap-1 px-2 py-0.5 bg-sky-50 border border-sky-100 text-slate-600 text-[10px] rounded">
                           {req.product.name}
-                          <span className="text-indigo-400 font-bold">x{formatFloat(req.quantity)}</span>
+                          <span className="text-sky-500 font-bold">x{formatFloat(req.quantity)}</span>
                         </span>
                       ))}
                       {cust.requirements.length === 0 && (
@@ -660,7 +670,7 @@ export default function TenantCustomers() {
                     <button
                       onClick={(e) => { e.stopPropagation(); handleDeleteCustomer(cust.id); }}
                       disabled={!!actionLoading}
-                      className="bg-slate-850 hover:bg-rose-955/40 border border-slate-800 hover:border-rose-900 text-slate-400 hover:text-rose-400 p-2 rounded-lg transition-all cursor-pointer"
+                      className="bg-sky-50 hover:bg-rose-955/40 border border-sky-100 hover:border-rose-900 text-slate-500 hover:text-rose-400 p-2 rounded-lg transition-all cursor-pointer"
                     >
                       {isDeleteLoading ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -684,67 +694,67 @@ export default function TenantCustomers() {
 
         {/* 選択顧客の希望商品 & スケジュール編集 */}
         {selectedCustomerId ? (
-          <div className="bg-slate-900/60 backdrop-blur-md border border-indigo-500/30 rounded-2xl p-6 shadow-xl space-y-5">
-            <div className="flex items-center justify-between border-b border-slate-850 pb-3">
-              <h3 className="font-bold text-slate-100 text-base flex items-center gap-2">
-                <Save className="w-5 h-5 text-indigo-400" />
+          <div className="bg-white border border-sky-300 rounded-2xl p-6 shadow-xl space-y-5">
+            <div className="flex items-center justify-between border-b border-sky-100 pb-3">
+              <h3 className="font-bold text-slate-700 text-base flex items-center gap-2">
+                <Save className="w-5 h-5 text-sky-500" />
                 設定・希望の編集
               </h3>
-              <span className="text-xs bg-indigo-500/10 text-indigo-400 font-semibold px-2.5 py-0.5 rounded border border-indigo-500/20 truncate max-w-[8rem]">
+              <span className="text-xs bg-sky-50 text-sky-500 font-semibold px-2.5 py-0.5 rounded border border-sky-200 truncate max-w-[8rem]">
                 {customers.find(c => c.id === selectedCustomerId)?.name}
               </span>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5">氏名</label>
+                <label className="block text-xs font-semibold text-slate-500 mb-1.5">氏名</label>
                 <input
                   type="text"
                   value={editCustomerName}
                   onChange={(e) => setEditCustomerName(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-white border border-sky-100 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-sky-400"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5">フリガナ（ソート用）</label>
+                <label className="block text-xs font-semibold text-slate-500 mb-1.5">フリガナ（ソート用）</label>
                 <input
                   type="text"
                   value={editCustomerNameKana}
                   onChange={(e) => setEditCustomerNameKana(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-white border border-sky-100 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-sky-400"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5">来店周期（0=来店不要）</label>
+                <label className="block text-xs font-semibold text-slate-500 mb-1.5">来店周期（0=来店不要）</label>
                 <input
                   type="number"
                   min="0"
                   value={editVisitInterval}
                   onChange={(e) => setEditVisitInterval(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
+                  className="w-full bg-white border border-sky-100 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5">最終来店日（起点）</label>
+                <label className="block text-xs font-semibold text-slate-500 mb-1.5">最終来店日（起点）</label>
                 <input
                   type="date"
                   value={editLastVisitDate}
                   onChange={(e) => setEditLastVisitDate(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
+                  className="w-full bg-white border border-sky-100 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
                 />
               </div>
             </div>
 
-            <div className="border-t border-slate-850 pt-4 space-y-3">
-              <label className="block text-xs font-semibold text-slate-400">希望商品の新規追加</label>
+            <div className="border-t border-sky-100 pt-4 space-y-3">
+              <label className="block text-xs font-semibold text-slate-500">希望商品の新規追加</label>
               <div className="flex gap-2">
                 <select
                   value={addReqProductId}
                   onChange={(e) => setAddReqProductId(e.target.value)}
-                  className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
+                  className="flex-1 bg-white border border-sky-100 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
                 >
                   {products.map(p => (
                     <option key={p.id} value={p.id}>{p.name}</option>
@@ -755,12 +765,12 @@ export default function TenantCustomers() {
                   step="0.01"
                   value={addReqQuantity}
                   onChange={(e) => setAddReqQuantity(e.target.value)}
-                  className="w-16 bg-slate-950 border border-slate-800 rounded-xl px-2 py-1.5 text-xs text-center text-white focus:outline-none"
+                  className="w-16 bg-white border border-sky-100 rounded-xl px-2 py-1.5 text-xs text-center text-white focus:outline-none"
                 />
                 <button
                   onClick={handleAddReq}
                   type="button"
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-3 py-1.5 rounded-xl text-xs transition-colors cursor-pointer"
+                  className="bg-sky-600 hover:bg-sky-500 text-white font-bold px-3 py-1.5 rounded-xl text-xs transition-colors cursor-pointer"
                 >
                   追加
                 </button>
@@ -768,7 +778,7 @@ export default function TenantCustomers() {
             </div>
 
             <div className="space-y-3">
-              <label className="block text-xs font-semibold text-slate-400">登録済み希望商品の訂正</label>
+              <label className="block text-xs font-semibold text-slate-500">登録済み希望商品の訂正</label>
               {selectedCustomerReqs.length === 0 ? (
                 <p className="text-slate-500 text-xs italic">希望商品は現在ありません。</p>
               ) : (
@@ -787,15 +797,15 @@ export default function TenantCustomers() {
                         onTouchStart={() => handleTouchStart(index)}
                         onTouchMove={handleTouchMove}
                         onTouchEnd={handleTouchEnd}
-                        className={`bg-slate-950/50 border border-slate-850 p-2.5 rounded-lg flex items-center justify-between gap-3 text-xs select-none ${
-                          isDraggingThis ? 'opacity-40 border-indigo-500 scale-[0.98]' : 'hover:border-slate-750'
+                        className={`bg-white/50 border border-sky-100 p-2.5 rounded-lg flex items-center justify-between gap-3 text-xs select-none ${
+                          isDraggingThis ? 'opacity-40 border-sky-400 scale-[0.98]' : 'hover:border-slate-750'
                         } transition-all duration-150`}
                       >
                         <div className="flex items-center gap-1.5 flex-1 min-w-0">
                           <div className="text-slate-500 hover:text-slate-350 cursor-grab active:cursor-grabbing shrink-0">
                             <GripVertical className="w-3.5 h-3.5" />
                           </div>
-                          <span className="font-semibold text-slate-200 truncate">{prod?.name || '不明な商品'}</span>
+                          <span className="font-semibold text-slate-700 truncate">{prod?.name || '不明な商品'}</span>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           <input
@@ -803,12 +813,12 @@ export default function TenantCustomers() {
                             step="0.01"
                             value={req.quantity}
                             onChange={(e) => handleUpdateReqQty(req.productId, parseFloat(e.target.value) || 0)}
-                            className="w-16 bg-slate-900 border border-slate-800 text-center py-1 rounded focus:outline-none"
+                            className="w-16 bg-sky-50 border border-sky-100 text-center py-1 rounded focus:outline-none"
                           />
                           <button
                             onClick={() => handleRemoveReq(req.productId)}
                             type="button"
-                            className="text-rose-400 hover:text-rose-300 p-1 hover:bg-slate-900 rounded transition-colors cursor-pointer"
+                            className="text-rose-400 hover:text-rose-300 p-1 hover:bg-sky-50 rounded transition-colors cursor-pointer"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -823,7 +833,7 @@ export default function TenantCustomers() {
             <button
               onClick={handleSaveReqs}
               disabled={actionLoading === 'save-reqs'}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-xl flex items-center justify-center gap-2 text-xs transition-all cursor-pointer"
+              className="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-2 rounded-xl flex items-center justify-center gap-2 text-xs transition-all cursor-pointer"
             >
               {actionLoading === 'save-reqs' ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -834,68 +844,68 @@ export default function TenantCustomers() {
             </button>
           </div>
         ) : (
-          <div className="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-2xl p-6 shadow-xl text-center py-10">
+          <div className="bg-white border border-sky-100 rounded-2xl p-6 shadow-xl text-center py-10">
             <Users className="w-10 h-10 text-slate-600 mx-auto mb-2" />
-            <p className="text-slate-400 text-xs">顧客一覧から顧客を選択すると、<br />希望商品リストの訂正やスケジュール編集が行えます。</p>
+            <p className="text-slate-500 text-xs">顧客一覧から顧客を選択すると、<br />希望商品リストの訂正やスケジュール編集が行えます。</p>
           </div>
         )}
 
         {/* 新規顧客追加フォーム */}
-        <div className="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-2xl p-6 shadow-xl">
-          <h3 className="font-bold text-slate-100 text-base mb-4 border-b border-slate-800 pb-3 flex items-center gap-2">
-            <UserPlus className="w-5 h-5 text-indigo-400" />
+        <div className="bg-white border border-sky-100 rounded-2xl p-6 shadow-xl">
+          <h3 className="font-bold text-slate-700 text-base mb-4 border-b border-sky-100 pb-3 flex items-center gap-2">
+            <UserPlus className="w-5 h-5 text-sky-500" />
             新規顧客登録
           </h3>
           <form onSubmit={handleAddCustomer} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5">氏名</label>
+                <label className="block text-xs font-semibold text-slate-500 mb-1.5">氏名</label>
                 <input
                   type="text"
                   required
                   value={newCustomerName}
                   onChange={(e) => setNewCustomerName(e.target.value)}
                   placeholder="例: 佐藤 健一"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-white border border-sky-100 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-sky-400"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5">フリガナ（ソート用）</label>
+                <label className="block text-xs font-semibold text-slate-500 mb-1.5">フリガナ（ソート用）</label>
                 <input
                   type="text"
                   value={newCustomerNameKana}
                   onChange={(e) => setNewCustomerNameKana(e.target.value)}
                   placeholder="例: サトウ ケンイチ"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-white border border-sky-100 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-sky-400"
                 />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5">来店周期（日）</label>
+                <label className="block text-xs font-semibold text-slate-500 mb-1.5">来店周期（日）</label>
                 <input
                   type="number"
                   required
                   min="0"
                   value={newCustomerInterval}
                   onChange={(e) => setNewCustomerInterval(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-white border border-sky-100 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-sky-400"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5">最終来店日（任意）</label>
+                <label className="block text-xs font-semibold text-slate-500 mb-1.5">最終来店日（任意）</label>
                 <input
                   type="date"
                   value={newCustomerLastVisit}
                   onChange={(e) => setNewCustomerLastVisit(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-white border border-sky-100 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-sky-400"
                 />
               </div>
             </div>
             <button
               type="submit"
               disabled={actionLoading === 'add-customer'}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded-xl flex items-center justify-center gap-2 text-xs transition-all cursor-pointer"
+              className="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-2 rounded-xl flex items-center justify-center gap-2 text-xs transition-all cursor-pointer"
             >
               顧客を追加
             </button>
@@ -903,9 +913,9 @@ export default function TenantCustomers() {
         </div>
 
         {/* CSVインポート（右カラム内に統合） */}
-        <div className="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-2xl p-6 shadow-xl">
-          <h3 className="font-bold text-slate-100 text-base mb-4 border-b border-slate-800 pb-3 flex items-center gap-2">
-            <Upload className="w-5 h-5 text-indigo-400" />
+        <div className="bg-white border border-sky-100 rounded-2xl p-6 shadow-xl">
+          <h3 className="font-bold text-slate-700 text-base mb-4 border-b border-sky-100 pb-3 flex items-center gap-2">
+            <Upload className="w-5 h-5 text-sky-500" />
             顧客台帳 CSVインポート
           </h3>
 
@@ -935,11 +945,11 @@ export default function TenantCustomers() {
             onClick={() => customerFileRef.current?.click()}
             className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all flex flex-col items-center justify-center min-h-[90px] mb-3 ${
               isDragOverCustomer
-                ? 'border-indigo-500 bg-indigo-950/20 text-indigo-300 scale-[1.01]'
-                : 'border-slate-800 hover:border-slate-600 bg-slate-950/20 text-slate-400'
+                ? 'border-sky-400 bg-indigo-950/20 text-sky-600 scale-[1.01]'
+                : 'border-sky-100 hover:border-sky-300 bg-sky-50/40 text-slate-500'
             }`}
           >
-            <Upload className="w-6 h-6 mb-1.5 text-indigo-400 animate-bounce" />
+            <Upload className="w-6 h-6 mb-1.5 text-sky-500 animate-bounce" />
             <p className="text-xs font-semibold">CSVをドロップ、またはクリックして選択</p>
             <input
               type="file"
@@ -951,9 +961,9 @@ export default function TenantCustomers() {
           </div>
 
           <div className="relative flex items-center py-2 mb-3">
-            <div className="flex-grow border-t border-slate-800"></div>
+            <div className="flex-grow border-t border-sky-100"></div>
             <span className="flex-shrink mx-3 text-slate-500 text-[10px] uppercase font-bold">または直接入力</span>
-            <div className="flex-grow border-t border-slate-800"></div>
+            <div className="flex-grow border-t border-sky-100"></div>
           </div>
 
           <textarea
@@ -961,7 +971,7 @@ export default function TenantCustomers() {
             value={customerCsvText}
             onChange={(e) => setCustomerCsvText(e.target.value)}
             placeholder={"名前,フリガナ,来店周期(日),最終来店日,希望商品一覧\n山田太郎,ヤマダタロウ,14,2026-05-25,アムロジピン錠5mg:2;ロキソプロフェンNa錠60mg:1\n鈴木花子,スズキハナコ,0,,\n田中次郎,,28,2026-05-01,"}
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs focus:outline-none text-white font-mono mb-3"
+            className="w-full bg-white border border-sky-100 rounded-xl p-3 text-xs focus:outline-none text-white font-mono mb-3"
           />
 
           <div className="flex items-center justify-between mb-4">
@@ -969,26 +979,27 @@ export default function TenantCustomers() {
             <button
               onClick={() => processAndImportCsv(customerCsvText)}
               disabled={actionLoading === 'import-customers'}
-              className="bg-indigo-650 hover:bg-indigo-550 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+              className="bg-sky-600 hover:bg-sky-500 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
             >
               テキストをインポート
             </button>
           </div>
 
-          <div className="bg-slate-950/40 border border-slate-800 p-3 rounded-xl text-xs text-slate-400 space-y-2">
-            <p className="font-bold text-slate-200 flex items-center gap-1"><FileText className="w-3.5 h-3.5" /> フォーマット</p>
-            <pre className="bg-slate-950 p-2 rounded text-[10px] text-indigo-300 overflow-x-auto leading-relaxed">
+          <div className="bg-sky-50/60 border border-sky-100 p-3 rounded-xl text-xs text-slate-500 space-y-2">
+            <p className="font-bold text-slate-700 flex items-center gap-1"><FileText className="w-3.5 h-3.5" /> フォーマット</p>
+            <pre className="bg-white p-2 rounded text-[10px] text-sky-600 overflow-x-auto leading-relaxed">
               {"名前,フリガナ,周期(日),最終来店日,希望商品一覧\n山田太郎,ヤマダタロウ,14,2026-05-25,薬A:2;薬B:1\n鈴木花子,スズキハナコ,0,,"}
             </pre>
             <ul className="text-[10px] text-slate-500 space-y-0.5 list-disc list-inside">
-              <li>希望商品: <span className="text-indigo-400 font-mono">商品名:数量</span>、複数は <span className="text-indigo-400 font-mono">;</span> 区切り</li>
+              <li>希望商品: <span className="text-sky-500 font-mono">商品名:数量</span>、複数は <span className="text-sky-500 font-mono">;</span> 区切り</li>
               <li>商品名は商品マスタと完全一致が必要</li>
-              <li>周期 <span className="text-indigo-400 font-mono">0</span> = 来店不要（非アクティブ）</li>
+              <li>周期 <span className="text-sky-500 font-mono">0</span> = 来店不要（非アクティブ）</li>
             </ul>
           </div>
         </div>
 
       </div>{/* /右カラム */}
-    </div>
+    </div>{/* /グリッド */}
+  </div>
   );
 }
