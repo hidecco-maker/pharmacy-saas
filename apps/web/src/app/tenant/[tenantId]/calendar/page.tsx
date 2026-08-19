@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
+  Calendar,
   Calendar as CalendarIcon,
   ChevronLeft,
   ChevronRight,
@@ -93,6 +94,39 @@ export default function TenantCalendar() {
   const touchOverDateRef = useRef<string | null>(null);
   const [isTouchDraggingVisit, setIsTouchDraggingVisit] = useState(false);
 
+  // D&D移動確認ポップアップ
+  const [confirmMove, setConfirmMove] = useState<{
+    visit: any;
+    targetDate: string;
+  } | null>(null);
+
+  // 端部自動スクロール用 Ref & 関数
+  const autoScrollRafRef = useRef<number | null>(null);
+  const autoScrollSpeedRef = useRef<number>(0);
+
+  const startAutoScroll = (speed: number) => {
+    autoScrollSpeedRef.current = speed;
+    if (autoScrollRafRef.current === null) {
+      const scrollStep = () => {
+        if (autoScrollSpeedRef.current !== 0) {
+          window.scrollBy({ top: autoScrollSpeedRef.current, behavior: 'auto' });
+          autoScrollRafRef.current = requestAnimationFrame(scrollStep);
+        } else {
+          autoScrollRafRef.current = null;
+        }
+      };
+      autoScrollRafRef.current = requestAnimationFrame(scrollStep);
+    }
+  };
+
+  const stopAutoScroll = () => {
+    autoScrollSpeedRef.current = 0;
+    if (autoScrollRafRef.current !== null) {
+      cancelAnimationFrame(autoScrollRafRef.current);
+      autoScrollRafRef.current = null;
+    }
+  };
+
   const DRAG_OVER_CLASSES = ['bg-sky-100', 'border-sky-400', 'ring-1', 'ring-sky-400/60', 'scale-[1.02]'];
 
   const fetchCalendar = async () => {
@@ -137,18 +171,15 @@ export default function TenantCalendar() {
     }
   }, [tenantId, weekOffset]);
 
-  // 来店完了モーダルを開く
+  // 来店完了モーダルを開く（カードの日付で即座に完了設定へ）
   const openVisitModal = (visit: any) => {
     // 完了済みカードはモーダルを開かない
     if (visit.isCompleted) return;
 
-    // 毎回現在時刻を取得してリセット（連続押しバグ対策）
-    const freshToday = getLocalDateStr();
-    // 過去日のカードは、その日を完了日の初期値とする
-    const initialDate = visit.visitDate < freshToday ? visit.visitDate : freshToday;
-    setVisitCompletedDate(initialDate);
-    // ステップ・モードを毎回リセット
-    setVisitModalStep('confirm_date');
+    // カードが置かれた日付を完了日のデフォルトにセット
+    setVisitCompletedDate(visit.visitDate);
+    // 「本日完了か？」の質問ステップはスキップし、直接次回日設定ステップを開く
+    setVisitModalStep('set_interval');
     setVisitNextDirectMode(false);
     setVisitNextDirectDate('');
 
@@ -356,7 +387,11 @@ export default function TenantCalendar() {
       setDragVisit(null);
       return;
     }
-    await rescheduleVisit(dragVisit, dateStr);
+    // 移動確認ポップアップを表示
+    setConfirmMove({
+      visit: dragVisit,
+      targetDate: dateStr,
+    });
     setDragVisit(null);
   };
 
@@ -365,10 +400,10 @@ export default function TenantCalendar() {
     touchTimerRef.current = setTimeout(() => {
       setIsTouchDraggingVisit(true);
       touchDragVisitRef.current = visit;
-      // スクロールを止める（iOS対策）
+      // スクロールを完全に止める（iOS / Android）
       document.body.style.overflow = 'hidden';
       document.body.style.touchAction = 'none';
-    }, 500);
+    }, 300);
   };
 
   const handleVisitTouchMove = (e: React.TouchEvent) => {
@@ -376,8 +411,27 @@ export default function TenantCalendar() {
       clearTimeout(touchTimerRef.current);
       return;
     }
+    // 通常の画面スクロールを完全に防止
     if (e.cancelable) e.preventDefault();
     const touch = e.touches[0];
+
+    // 画面端（上下90px）での自動縦スクロール（端に近いほど加速）
+    const edgeThreshold = 90;
+    const clientY = touch.clientY;
+    const innerHeight = window.innerHeight;
+
+    if (clientY < edgeThreshold) {
+      const intensity = (edgeThreshold - Math.max(0, clientY)) / edgeThreshold;
+      const speed = Math.max(3, intensity * 24);
+      startAutoScroll(-speed);
+    } else if (clientY > innerHeight - edgeThreshold) {
+      const intensity = (Math.min(innerHeight, clientY) - (innerHeight - edgeThreshold)) / edgeThreshold;
+      const speed = Math.max(3, intensity * 24);
+      startAutoScroll(speed);
+    } else {
+      stopAutoScroll();
+    }
+
     const el = document.elementFromPoint(touch.clientX, touch.clientY);
     if (!el) return;
     const cell = el.closest('[data-calendar-date]') as HTMLElement;
@@ -395,17 +449,22 @@ export default function TenantCalendar() {
 
   const handleVisitTouchEnd = async () => {
     clearTimeout(touchTimerRef.current);
+    stopAutoScroll();
     const targetDate = touchOverDateRef.current;
     if (targetDate) {
       document.querySelector(`[data-calendar-date="${targetDate}"]`)?.classList.remove(...DRAG_OVER_CLASSES);
     }
-    // スクロール解除
+    // スクロールロック解除
     document.body.style.overflow = '';
     document.body.style.touchAction = '';
 
     if (isTouchDraggingVisit && touchDragVisitRef.current && targetDate) {
       if (touchDragVisitRef.current.visitDate !== targetDate) {
-        await rescheduleVisit(touchDragVisitRef.current, targetDate);
+        // 移動確認ポップアップを表示
+        setConfirmMove({
+          visit: touchDragVisitRef.current,
+          targetDate: targetDate,
+        });
       }
     }
     setIsTouchDraggingVisit(false);
@@ -649,9 +708,60 @@ export default function TenantCalendar() {
         })}
       </div>
 
+      {/* ============================================================
+          D&D 移動確認ポップアップ
+          ============================================================ */}
+      {confirmMove && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-white border border-sky-200 rounded-2xl p-6 max-w-sm w-full shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-sky-100 text-sky-600 rounded-xl">
+                <Calendar className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-bold text-slate-800 text-sm">来店予定日の変更</h4>
+                <p className="text-xs text-slate-500">{confirmMove.visit.customerName} さん</p>
+              </div>
+            </div>
+            <div className="bg-sky-50 border border-sky-100 rounded-xl p-3.5 text-xs text-slate-700 space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500">変更前:</span>
+                <span className="font-semibold text-slate-600">{formatDateJPFull(confirmMove.visit.visitDate)}</span>
+              </div>
+              <div className="flex justify-between items-center border-t border-sky-100 pt-2">
+                <span className="text-slate-500 font-bold">変更後:</span>
+                <span className="font-bold text-sky-700 text-sm">{formatDateJPFull(confirmMove.targetDate)}</span>
+              </div>
+            </div>
+            <p className="text-[11px] text-slate-500 text-center">この来店予定日を変更してよろしいですか？</p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmMove(null)}
+                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold py-2.5 rounded-xl text-xs transition-colors cursor-pointer"
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const { visit, targetDate } = confirmMove;
+                  setConfirmMove(null);
+                  await rescheduleVisit(visit, targetDate);
+                  showToast(`✅ ${visit.customerName}さんの予定日を${formatDateJPFull(targetDate)}に変更しました`);
+                }}
+                className="flex-1 bg-sky-600 hover:bg-sky-500 text-white font-bold py-2.5 rounded-xl text-xs transition-all shadow-md active:scale-95 cursor-pointer"
+              >
+                変更する
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 来店完了モーダル */}
       {visitModalCustomer && (
-        <div className="fixed inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white border border-sky-100 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden relative">
             <button
               onClick={() => setVisitModalCustomer(null)}
@@ -664,81 +774,49 @@ export default function TenantCalendar() {
             <div className="p-6 border-b border-sky-100">
               <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                来店処理: {visitModalCustomer.customerName}
+                来店完了処理: {visitModalCustomer.customerName}
               </h3>
-              {/* ステップインジケーター */}
-              <div className="flex items-center gap-2 mt-3">
-                {(['confirm_date', 'pick_date', 'set_interval'] as const).map((s, i) => {
-                  const labels = ['① 完了日確認', '② 日付選択', '③ 次回日設定'];
-                  const steps = ['confirm_date', 'pick_date', 'set_interval'];
-                  const isActive = visitModalStep === s;
-                  const isDone = steps.indexOf(visitModalStep) > i;
-                  return (
-                    <span key={s} className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all ${
-                      isActive ? 'bg-sky-50 border-sky-300 text-sky-600'
-                      : isDone ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
-                      : 'bg-slate-50 border-slate-200 text-slate-400'
-                    }`}>{labels[i]}</span>
-                  );
-                })}
+              {/* 完了日表示バー（直接変更可能） */}
+              <div className="mt-3 flex items-center justify-between bg-sky-50 border border-sky-200 rounded-xl px-3.5 py-2">
+                <div className="flex items-center gap-1.5 text-xs">
+                  <span className="text-slate-500">来局完了日:</span>
+                  <span className="font-bold text-sky-800">{formatDateJPFull(visitCompletedDate)}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setVisitModalStep(visitModalStep === 'pick_date' ? 'set_interval' : 'pick_date')}
+                  className="text-xs text-sky-600 hover:text-sky-800 font-semibold underline cursor-pointer"
+                >
+                  {visitModalStep === 'pick_date' ? '設定画面に戻る' : '📅 日付を変更'}
+                </button>
               </div>
             </div>
 
-            {/* ===== STEP 1: 完了日確認 ===== */}
-            {visitModalStep === 'confirm_date' && (
-              <div className="p-6 space-y-5">
-                <p className="text-sm text-slate-700 font-semibold text-center">
-                  本日（{formatDateJPFull(getLocalDateStr())}）に<br />完了しましたか？
-                </p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => {
-                      setVisitCompletedDate(todayStr);
-                      setVisitModalStep('set_interval');
-                    }}
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl text-sm transition-all active:scale-95 cursor-pointer"
-                  >
-                    ✅ はい
-                  </button>
-                  <button
-                    onClick={() => setVisitModalStep('pick_date')}
-                    className="flex-1 bg-sky-50 hover:bg-sky-100 text-sky-700 font-semibold py-3 rounded-xl text-sm transition-all active:scale-95 cursor-pointer"
-                  >
-                    📅 別の日を選ぶ
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* ===== STEP 2: 別の日を選ぶ ===== */}
+            {/* ===== STEP 2: 日付選択モード ===== */}
             {visitModalStep === 'pick_date' && (
               <div className="p-6 space-y-4">
-                <p className="text-xs text-slate-500">来局完了日を選択してください</p>
+                <p className="text-xs text-slate-600 font-medium">来局完了日を選択してください</p>
                 <input
                   type="date"
                   value={visitCompletedDate}
-                  max={todayStr}
                   onChange={(e) => setVisitCompletedDate(e.target.value)}
                   className="w-full bg-white border border-sky-200 rounded-xl px-4 py-3 text-sm text-slate-800 focus:outline-none focus:border-sky-400 cursor-pointer"
                 />
-                {visitCompletedDate && visitCompletedDate !== todayStr && (
-                  <span className="inline-block text-[11px] text-amber-600 font-semibold bg-amber-50 px-3 py-1 rounded-lg border border-amber-200">
-                    過去日付: {formatDateJPFull(visitCompletedDate)}
-                  </span>
-                )}
                 <div className="flex gap-3 pt-2">
                   <button
-                    onClick={() => setVisitModalStep('confirm_date')}
+                    type="button"
+                    onClick={() => setVisitModalStep('set_interval')}
                     className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold py-2.5 rounded-xl text-xs transition-colors cursor-pointer"
                   >
-                    ← 戻る
+                    戻る
                   </button>
                   <button
+                    type="button"
                     disabled={!visitCompletedDate}
                     onClick={() => setVisitModalStep('set_interval')}
                     className="flex-1 bg-sky-600 hover:bg-sky-500 text-white font-bold py-2.5 rounded-xl text-sm transition-all active:scale-95 disabled:opacity-40 cursor-pointer"
                   >
-                    確定 →
+                    この日付で確定 →
                   </button>
                 </div>
               </div>

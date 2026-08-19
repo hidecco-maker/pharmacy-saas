@@ -49,48 +49,48 @@ export default async function TenantLayout({ children, params }: TenantLayoutPro
       </div>
 
       {/* サイドバー */}
-      <aside className="w-full md:w-60 bg-white/95 backdrop-blur-md border-r border-sky-100 flex flex-col z-10 shrink-0 shadow-sm">
+      <aside className="w-full md:w-44 bg-white/95 backdrop-blur-md border-r border-sky-100 flex flex-col z-10 shrink-0 shadow-sm">
         {/* 店舗名表示 */}
-        <div className="p-5 border-b border-sky-100 flex items-center gap-3">
-          <div className="bg-sky-600 p-2 rounded-xl shadow-md shadow-sky-600/20">
-            <Store className="w-5 h-5 text-white" />
+        <div className="p-3.5 border-b border-sky-100 flex items-center gap-2.5">
+          <div className="bg-sky-600 p-2 rounded-xl shadow-md shadow-sky-600/20 shrink-0">
+            <Store className="w-4 h-4 text-white" />
           </div>
-          <div>
-            <h2 className="font-bold text-slate-700 tracking-wide text-sm truncate max-w-[150px]">
+          <div className="min-w-0">
+            <h2 className="font-bold text-slate-800 tracking-wide text-xs truncate">
               {tenant.displayName}
             </h2>
-            <span className="text-[10px] text-sky-500 font-semibold uppercase tracking-wider block mt-0.5">
-              テナントポータル
+            <span className="text-[9px] text-sky-600 font-bold uppercase tracking-wider block">
+              ポータル
             </span>
           </div>
         </div>
 
         {/* ナビゲーションメニュー */}
-        <nav className="flex-1 px-3 py-5 space-y-0.5">
+        <nav className="flex-1 px-2.5 py-4 space-y-2">
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className="flex items-center gap-3 px-3 py-2.5 text-slate-500 hover:text-sky-700 hover:bg-sky-50 rounded-xl text-sm font-medium transition-all duration-150 group"
+                className="flex items-center gap-2.5 px-3 py-3 text-slate-600 hover:text-sky-700 hover:bg-sky-50 rounded-xl text-xs font-semibold transition-all duration-150 group"
               >
-                <Icon className="w-4 h-4 text-sky-400 group-hover:text-sky-600 transition-colors shrink-0" />
-                {item.label}
+                <Icon className="w-4.5 h-4.5 text-sky-500 group-hover:text-sky-600 transition-colors shrink-0" />
+                <span className="truncate">{item.label}</span>
               </Link>
             );
           })}
         </nav>
 
         {/* 下部メニュー */}
-        <div className="p-3 border-t border-sky-100">
+        <div className="p-2.5 border-t border-sky-100">
           <form action="/api/auth/logout" method="POST">
             <button
               type="submit"
-              className="w-full flex items-center gap-3 px-3 py-2.5 text-rose-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl text-sm font-medium transition-all duration-150"
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 text-rose-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl text-xs font-semibold transition-all duration-150 cursor-pointer"
             >
-              <LogOut className="w-4 h-4" />
-              ログアウト
+              <LogOut className="w-4 h-4 shrink-0" />
+              <span>ログアウト</span>
             </button>
           </form>
         </div>

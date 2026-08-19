@@ -574,12 +574,12 @@ export default function TenantCustomers() {
          - 左カラム: flex-col + flex-1 overflow-y-auto でリストが独立スクロール
          - 右カラム: overflow-y-auto h-full で全カード縦スクロール
          ============================================================ */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-8rem)] min-h-0">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 h-[calc(100vh-8rem)] min-h-0">
 
       {/* ==============================
           左カラム：顧客一覧（独立スクロール）
           ============================== */}
-      <div className="lg:col-span-2 bg-white border border-sky-100 rounded-2xl shadow-xl flex flex-col min-h-0 h-full">
+      <div className="xl:col-span-7 bg-white border border-sky-100 rounded-2xl shadow-xl flex flex-col min-h-0 h-full">
         {/* あいうえおインデックス（縦） */}
 
         {/* ヘッダー（固定） */}
@@ -691,14 +691,14 @@ export default function TenantCustomers() {
       {/* ==============================
           右カラム：編集・登録・CSV（独立スクロール）
           ============================== */}
-      <div className="overflow-y-auto custom-scrollbar h-full space-y-5 pr-0.5">
+      <div className="xl:col-span-5 overflow-y-auto custom-scrollbar h-full space-y-5 pr-0.5 min-w-0">
 
         {/* 選択顧客の希望商品 & スケジュール編集 */}
         {selectedCustomerId ? (
-          <div className="bg-white border border-sky-300 rounded-2xl p-6 shadow-xl space-y-5">
+          <div className="bg-white border border-sky-300 rounded-2xl p-5 sm:p-6 shadow-xl space-y-5">
             <div className="flex items-center justify-between border-b border-sky-100 pb-3">
               <h3 className="font-bold text-slate-700 text-base flex items-center gap-2">
-                <Save className="w-5 h-5 text-sky-500" />
+                <Save className="w-5 h-5 text-sky-500 shrink-0" />
                 設定・希望の編集
               </h3>
               <span className="text-xs bg-sky-50 text-sky-500 font-semibold px-2.5 py-0.5 rounded border border-sky-200 truncate max-w-[8rem]">
@@ -706,9 +706,9 @@ export default function TenantCustomers() {
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1.5">氏名</label>
+                <label className="block text-xs font-semibold text-slate-500 mb-1">氏名</label>
                 <input
                   type="text"
                   value={editCustomerName}
@@ -717,7 +717,7 @@ export default function TenantCustomers() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1.5">フリガナ（ソート用）</label>
+                <label className="block text-xs font-semibold text-slate-500 mb-1">フリガナ（ソート用）</label>
                 <input
                   type="text"
                   value={editCustomerNameKana}
@@ -727,9 +727,9 @@ export default function TenantCustomers() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1.5">来店周期（0=来店不要）</label>
+                <label className="block text-xs font-semibold text-slate-500 mb-1">来店周期（0=来店不要）</label>
                 <input
                   type="number"
                   min="0"
@@ -739,7 +739,7 @@ export default function TenantCustomers() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1.5">最終来店日（起点）</label>
+                <label className="block text-xs font-semibold text-slate-500 mb-1">最終来店日（起点）</label>
                 <input
                   type="date"
                   value={editLastVisitDate}
@@ -749,13 +749,13 @@ export default function TenantCustomers() {
               </div>
             </div>
 
-            <div className="border-t border-sky-100 pt-4 space-y-3">
+            <div className="border-t border-sky-100 pt-4 space-y-2.5">
               <label className="block text-xs font-semibold text-slate-500">希望商品の新規追加</label>
-              <div className="flex gap-2">
+              <div className="flex gap-2 items-center">
                 <select
                   value={addReqProductId}
                   onChange={(e) => setAddReqProductId(e.target.value)}
-                  className="flex-1 bg-white border border-sky-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-sky-400"
+                  className="flex-1 min-w-0 bg-white border border-sky-200 rounded-xl px-2.5 py-2 text-xs text-slate-800 focus:outline-none focus:border-sky-400 truncate"
                 >
                   <option value="">ーーー◀下から薬品を選択▶ーーー</option>
                   {products.map(p => (
@@ -765,14 +765,15 @@ export default function TenantCustomers() {
                 <input
                   type="number"
                   step="0.01"
+                  placeholder="数量"
                   value={addReqQuantity}
                   onChange={(e) => setAddReqQuantity(e.target.value)}
-                  className="w-16 bg-white border border-sky-200 rounded-xl px-2 py-1.5 text-xs text-center text-slate-800 focus:outline-none focus:border-sky-400"
+                  className="w-14 sm:w-16 shrink-0 bg-white border border-sky-200 rounded-xl px-2 py-2 text-xs text-center text-slate-800 font-bold focus:outline-none focus:border-sky-400"
                 />
                 <button
                   onClick={handleAddReq}
                   type="button"
-                  className="bg-sky-600 hover:bg-sky-500 text-white font-bold px-3 py-1.5 rounded-xl text-xs transition-colors cursor-pointer"
+                  className="shrink-0 bg-sky-600 hover:bg-sky-500 text-white font-bold px-3 py-2 rounded-xl text-xs transition-colors cursor-pointer shadow-sm active:scale-95"
                 >
                   追加
                 </button>
@@ -799,28 +800,28 @@ export default function TenantCustomers() {
                         onTouchStart={() => handleTouchStart(index)}
                         onTouchMove={handleTouchMove}
                         onTouchEnd={handleTouchEnd}
-                        className={`bg-white/50 border border-sky-100 p-2.5 rounded-lg flex items-center justify-between gap-3 text-xs select-none ${
-                          isDraggingThis ? 'opacity-40 border-sky-400 scale-[0.98]' : 'hover:border-slate-750'
+                        className={`bg-white border border-sky-100 p-2.5 rounded-xl flex items-center justify-between gap-2 text-xs select-none shadow-sm ${
+                          isDraggingThis ? 'opacity-40 border-sky-400 scale-[0.98]' : 'hover:border-sky-300'
                         } transition-all duration-150`}
                       >
                         <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                          <div className="text-slate-500 hover:text-slate-350 cursor-grab active:cursor-grabbing shrink-0">
+                          <div className="text-slate-400 hover:text-slate-600 cursor-grab active:cursor-grabbing shrink-0">
                             <GripVertical className="w-3.5 h-3.5" />
                           </div>
                           <span className="font-semibold text-slate-700 truncate">{prod?.name || '不明な商品'}</span>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex items-center gap-1.5 shrink-0">
                           <input
                             type="number"
                             step="0.01"
                             value={req.quantity}
                             onChange={(e) => handleUpdateReqQty(req.productId, parseFloat(e.target.value) || 0)}
-                            className="w-16 bg-sky-50 border border-sky-100 text-center py-1 rounded focus:outline-none"
+                            className="w-14 sm:w-16 bg-white border border-sky-200 text-center py-1 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:border-sky-400"
                           />
                           <button
                             onClick={() => handleRemoveReq(req.productId)}
                             type="button"
-                            className="text-rose-400 hover:text-rose-300 p-1 hover:bg-sky-50 rounded transition-colors cursor-pointer"
+                            className="text-rose-400 hover:text-rose-600 p-1 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
