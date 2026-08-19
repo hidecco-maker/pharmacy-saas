@@ -15,56 +15,54 @@ export default function LandingPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #020617 0%, #0f172a 50%, #1e1b4b 100%)',
-      color: '#f1f5f9',
+      background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #bae6fd 100%)',
+      color: '#1e293b',
       fontFamily: 'Inter, sans-serif',
       display: 'flex',
       flexDirection: 'column',
     }}>
       {/* 背景装飾 */}
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', top: '-100px', right: '10%', width: '600px', height: '600px', background: 'radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)', borderRadius: '50%' }} />
-        <div style={{ position: 'absolute', bottom: '-100px', left: '10%', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(139,92,246,0.1) 0%, transparent 70%)', borderRadius: '50%' }} />
+        <div style={{ position: 'absolute', top: '-100px', right: '10%', width: '600px', height: '600px', background: 'radial-gradient(circle, rgba(14,165,233,0.15) 0%, transparent 70%)', borderRadius: '50%' }} />
+        <div style={{ position: 'absolute', bottom: '-100px', left: '10%', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(56,189,248,0.15) 0%, transparent 70%)', borderRadius: '50%' }} />
       </div>
 
       {/* ヘッダー */}
-      <header style={{ padding: '1.5rem 2rem', borderBottom: '1px solid rgba(255,255,255,0.05)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 50, background: 'rgba(2,6,23,0.8)' }}>
+      <header style={{ padding: '1.25rem 2rem', borderBottom: '1px solid #e0f2fe', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 50, background: 'rgba(255,255,255,0.85)', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{ width: '2.5rem', height: '2.5rem', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem', boxShadow: '0 0 20px rgba(99,102,241,0.4)' }}>💊</div>
-          <span style={{ fontSize: '1.25rem', fontWeight: '800', background: 'linear-gradient(135deg, #fff, #a5b4fc)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>PharmaSaaS</span>
+          <div style={{ width: '2.5rem', height: '2.5rem', background: 'linear-gradient(135deg, #0284c7, #0369a1)', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem', boxShadow: '0 4px 12px rgba(2,132,199,0.3)' }}>💊</div>
+          <span style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0c4a6e' }}>PharmaSaaS</span>
         </div>
-        <Link href="/login" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', padding: '0.625rem 1.5rem', borderRadius: '0.75rem', fontWeight: '600', textDecoration: 'none', fontSize: '0.875rem', boxShadow: '0 4px 15px rgba(99,102,241,0.3)' }}>
+        <Link href="/login" style={{ background: '#0284c7', color: 'white', padding: '0.625rem 1.5rem', borderRadius: '0.75rem', fontWeight: '700', textDecoration: 'none', fontSize: '0.875rem', boxShadow: '0 2px 8px rgba(2,132,199,0.3)' }}>
           ログイン
         </Link>
       </header>
 
       <main style={{ flex: 1, position: 'relative', zIndex: 10 }}>
         {/* ヒーロー */}
-        <section style={{ textAlign: 'center', padding: '6rem 2rem 4rem', maxWidth: '800px', margin: '0 auto' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: '9999px', padding: '0.375rem 1rem', fontSize: '0.75rem', fontWeight: '600', color: '#a5b4fc', marginBottom: '2rem' }}>
-            <span>✨</span><span>マルチテナント対応 SaaS プラットフォーム</span>
+        <section style={{ textAlign: 'center', padding: '5rem 2rem 3rem', maxWidth: '800px', margin: '0 auto' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(2,132,199,0.08)', border: '1px solid #bae6fd', borderRadius: '9999px', padding: '0.375rem 1rem', fontSize: '0.75rem', fontWeight: '700', color: '#0369a1', marginBottom: '2rem' }}>
+            <span>✨</span><span>薬局・医療機関向け SaaS プラットフォーム</span>
           </div>
-          <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)', fontWeight: '800', lineHeight: 1.1, marginBottom: '1.5rem', background: 'linear-gradient(135deg, #fff 0%, #e2e8f0 50%, #a5b4fc 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+          <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3.25rem)', fontWeight: '800', lineHeight: 1.2, marginBottom: '1.5rem', color: '#0f172a', letterSpacing: '-0.02em' }}>
             薬局・店舗向け<br />クラウド管理システム
           </h1>
-          <p style={{ fontSize: '1.125rem', color: '#94a3b8', lineHeight: 1.7, marginBottom: '3rem' }}>
+          <p style={{ fontSize: '1.125rem', color: '#475569', lineHeight: 1.7, marginBottom: '2.5rem' }}>
             在庫管理・来店予測・LINE BOT連携が一つに。<br />複数店舗を一元管理するマルチテナント対応SaaSプラットフォーム。
           </p>
-          <Link href="/login" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', padding: '1rem 2.5rem', borderRadius: '0.875rem', fontWeight: '700', textDecoration: 'none', fontSize: '1rem', boxShadow: '0 8px 30px rgba(99,102,241,0.4)' }}>
+          <Link href="/login" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'linear-gradient(135deg, #0284c7, #0369a1)', color: 'white', padding: '0.875rem 2.25rem', borderRadius: '0.875rem', fontWeight: '700', textDecoration: 'none', fontSize: '1rem', boxShadow: '0 8px 25px rgba(2,132,199,0.35)' }}>
             システムにログイン →
           </Link>
         </section>
 
         {/* 機能カード */}
-        <section style={{ padding: '4rem 2rem', maxWidth: '1200px', margin: '0 auto' }}>
-          <h2 style={{ textAlign: 'center', fontSize: '1.5rem', fontWeight: '700', marginBottom: '3rem', color: '#e2e8f0' }}>主な機能</h2>
+        <section style={{ padding: '3rem 2rem 5rem', maxWidth: '1200px', margin: '0 auto' }}>
+          <h2 style={{ textAlign: 'center', fontSize: '1.5rem', fontWeight: '800', marginBottom: '2.5rem', color: '#0f172a' }}>主な機能</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
             {features.map((f) => (
-              <div key={f.title} style={{ background: 'rgba(15,23,42,0.8)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '1rem', padding: '1.5rem', backdropFilter: 'blur(10px)', transition: 'border-color 0.2s', cursor: 'default' }}
-                onMouseOver={(e) => (e.currentTarget.style.borderColor = 'rgba(99,102,241,0.3)')}
-                onMouseOut={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)')}>
+              <div key={f.title} style={{ background: '#ffffff', border: '1px solid #e0f2fe', borderRadius: '1rem', padding: '1.75rem', boxShadow: '0 4px 20px rgba(14,165,233,0.05)', transition: 'transform 0.2s, box-shadow 0.2s', cursor: 'default' }}>
                 <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>{f.icon}</div>
-                <h3 style={{ fontWeight: '700', marginBottom: '0.5rem', color: '#e2e8f0' }}>{f.title}</h3>
+                <h3 style={{ fontWeight: '700', marginBottom: '0.5rem', color: '#0f172a' }}>{f.title}</h3>
                 <p style={{ fontSize: '0.875rem', color: '#64748b', lineHeight: 1.6 }}>{f.desc}</p>
               </div>
             ))}
@@ -72,7 +70,7 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer style={{ textAlign: 'center', padding: '2rem', borderTop: '1px solid rgba(255,255,255,0.05)', color: '#475569', fontSize: '0.875rem' }}>
+      <footer style={{ textAlign: 'center', padding: '2rem', borderTop: '1px solid #e0f2fe', color: '#64748b', fontSize: '0.875rem', background: '#ffffff' }}>
         © 2026 PharmaSaaS. All rights reserved.
       </footer>
     </div>

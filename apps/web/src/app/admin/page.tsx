@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import {
@@ -205,9 +205,9 @@ export default function AdminDashboard() {
 
   if (loading && tenants.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-slate-100">
+      <div className="flex flex-col items-center justify-center py-20 text-slate-700">
         <Loader2 className="w-12 h-12 text-indigo-500 animate-spin mb-4" />
-        <p className="text-slate-400 font-medium">テナント一覧をロードしています...</p>
+        <p className="text-slate-500 font-medium">テナント一覧をロードしています...</p>
       </div>
     );
   }
@@ -217,15 +217,15 @@ export default function AdminDashboard() {
       {/* メインレイアウト */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* テナント一覧 */}
-        <div className="lg:col-span-2 bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-            <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-              <Shield className="w-5 h-5 text-indigo-400" />
+        <div className="lg:col-span-2 bg-white border border-sky-100 rounded-2xl p-6 shadow-xl space-y-6">
+          <div className="flex items-center justify-between border-b border-sky-100 pb-4">
+            <h2 className="text-lg font-bold text-slate-700 flex items-center gap-2">
+              <Shield className="w-5 h-5 text-sky-600" />
               登録店舗（テナント）一覧
             </h2>
             <button
               onClick={fetchTenants}
-              className="p-2 hover:bg-slate-850 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer"
+              className="p-2 hover:bg-sky-50 rounded-lg text-slate-500 hover:text-white transition-colors cursor-pointer"
               title="リロード"
             >
               <RefreshCw className="w-4 h-4" />
@@ -242,15 +242,15 @@ export default function AdminDashboard() {
               return (
                 <div
                   key={tenant.id}
-                  className={`bg-slate-950/40 border border-slate-855 rounded-xl p-4 flex flex-col gap-3 transition-all ${
-                    tenant.isActive ? 'border-slate-850' : 'border-rose-950/40 opacity-70'
+                  className={`bg-white/40 border border-slate-855 rounded-xl p-4 flex flex-col gap-3 transition-all ${
+                    tenant.isActive ? 'border-sky-100' : 'border-rose-950/40 opacity-70'
                   }`}
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div className="space-y-2 flex-1 min-w-0">
                       <div className="flex items-center gap-2.5">
                         <h3 className="font-bold text-slate-150 text-base">{tenant.displayName}</h3>
-                        <span className="text-[9px] bg-slate-900 text-slate-400 px-2 py-0.5 rounded border border-slate-800">
+                        <span className="text-[9px] bg-sky-50 text-slate-500 px-2 py-0.5 rounded border border-sky-100">
                           {tenant.industry === 'pharmacy' ? '薬局・調剤' : 'その他小売'}
                         </span>
                         {tenant.isActive ? (
@@ -269,7 +269,7 @@ export default function AdminDashboard() {
                         {isEditingSlug ? (
                           <div className="flex-1 space-y-1.5">
                             <div className="flex items-center gap-1.5">
-                              <span className="text-xs text-slate-400 shrink-0">店舗ID:</span>
+                              <span className="text-xs text-slate-500 shrink-0">店舗ID:</span>
                               <input
                                 type="text"
                                 value={editingSlugValue}
@@ -283,13 +283,13 @@ export default function AdminDashboard() {
                                 }}
                                 disabled={isSlugLoading}
                                 autoFocus
-                                className="flex-1 bg-slate-900 border border-indigo-500 rounded-lg px-2 py-1 text-xs text-white font-mono focus:outline-none focus:border-indigo-400 min-w-0"
+                                className="flex-1 bg-sky-50 border border-indigo-500 rounded-lg px-2 py-1 text-xs text-white font-mono focus:outline-none focus:border-indigo-400 min-w-0"
                                 placeholder="例: yanagiya-honten"
                               />
                               <button
                                 onClick={() => handleSaveSlug(tenant.id)}
                                 disabled={isSlugLoading}
-                                className="p-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors cursor-pointer shrink-0"
+                                className="p-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg transition-colors cursor-pointer shrink-0"
                                 title="保存"
                               >
                                 {isSlugLoading ? (
@@ -301,7 +301,7 @@ export default function AdminDashboard() {
                               <button
                                 onClick={cancelSlugEdit}
                                 disabled={isSlugLoading}
-                                className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-lg transition-colors cursor-pointer shrink-0"
+                                className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-500 hover:text-white rounded-lg transition-colors cursor-pointer shrink-0"
                                 title="キャンセル"
                               >
                                 <X className="w-3.5 h-3.5" />
@@ -313,20 +313,20 @@ export default function AdminDashboard() {
                           </div>
                         ) : (
                           <div className="flex items-center gap-1.5">
-                            <span className="text-xs text-slate-400">店舗ID:</span>
-                            <span className="text-indigo-400 font-mono font-semibold text-xs">{tenant.slug}</span>
+                            <span className="text-xs text-slate-500">店舗ID:</span>
+                            <span className="text-sky-600 font-mono font-semibold text-xs">{tenant.slug}</span>
                             <button
                               onClick={() => startSlugEdit(tenant)}
                               disabled={!!actionLoading}
-                              className="p-1 text-slate-500 hover:text-indigo-400 hover:bg-indigo-500/10 rounded transition-colors cursor-pointer"
+                              className="p-1 text-slate-500 hover:text-sky-600 hover:bg-indigo-500/10 rounded transition-colors cursor-pointer"
                               title="店舗IDを編集"
                             >
                               <Pencil className="w-3 h-3" />
                             </button>
                           </div>
                         )}
-                        <div className="text-xs text-slate-400 ml-auto shrink-0">
-                          登録日: <span className="text-slate-300">{formatDate(tenant.createdAt)}</span>
+                        <div className="text-xs text-slate-500 ml-auto shrink-0">
+                          登録日: <span className="text-slate-600">{formatDate(tenant.createdAt)}</span>
                         </div>
                       </div>
                     </div>
@@ -352,7 +352,7 @@ export default function AdminDashboard() {
                         disabled={!!actionLoading}
                         className={`p-2 rounded-lg border transition-all cursor-pointer ${
                           tenant.isActive
-                            ? 'bg-slate-900 hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 border-slate-800 hover:border-rose-900/30'
+                            ? 'bg-sky-50 hover:bg-rose-500/10 text-slate-500 hover:text-rose-400 border-sky-100 hover:border-rose-900/30'
                             : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
                         }`}
                         title={tenant.isActive ? '店舗を一時停止（無効化）' : '店舗をアクティブ化（有効化）'}
@@ -368,7 +368,7 @@ export default function AdminDashboard() {
                       <button
                         onClick={() => handleDeleteTenant(tenant.id)}
                         disabled={!!actionLoading}
-                        className="bg-slate-900 hover:bg-rose-955/40 border border-slate-800 hover:border-rose-900 text-slate-400 hover:text-rose-400 p-2 rounded-lg transition-all cursor-pointer"
+                        className="bg-sky-50 hover:bg-rose-955/40 border border-sky-100 hover:border-rose-900 text-slate-500 hover:text-rose-400 p-2 rounded-lg transition-all cursor-pointer"
                         title="店舗の完全削除"
                       >
                         {isDeleteLoading ? (
@@ -386,13 +386,13 @@ export default function AdminDashboard() {
         </div>
 
         {/* テナント作成フォーム（簡単初期設定） */}
-        <div className="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
+        <div className="bg-white border border-sky-100 rounded-2xl p-6 shadow-xl space-y-5">
           <div className="border-b border-slate-805 pb-3">
-            <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
-              <Plus className="w-5 h-5 text-indigo-400" />
+            <h2 className="text-base font-bold text-slate-700 flex items-center gap-2">
+              <Plus className="w-5 h-5 text-sky-600" />
               新規店舗（テナント）追加
             </h2>
-            <p className="text-[10px] text-slate-400 mt-1">
+            <p className="text-[10px] text-slate-500 mt-1">
               自動でデータベースを分離構築し、初期アカウントを設定します。
             </p>
           </div>
@@ -407,10 +407,10 @@ export default function AdminDashboard() {
           <form onSubmit={handleCreateTenant} className="space-y-4">
             {/* 基本設定 */}
             <div className="space-y-3">
-              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">店舗基本情報</h4>
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">店舗基本情報</h4>
               
               <div>
-                <label className="block text-[11px] text-slate-400 mb-1">店舗名（表示名）</label>
+                <label className="block text-[11px] text-slate-500 mb-1">店舗名（表示名）</label>
                 <input
                   type="text"
                   required
@@ -418,12 +418,12 @@ export default function AdminDashboard() {
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   disabled={!!actionLoading}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-white border border-sky-100 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-sky-500"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] text-slate-400 mb-1">店舗ID (URL用スラッグ・半角英数/ハイフンのみ)</label>
+                <label className="block text-[11px] text-slate-500 mb-1">店舗ID (URL用スラッグ・半角英数/ハイフンのみ)</label>
                 <input
                   type="text"
                   required
@@ -431,17 +431,17 @@ export default function AdminDashboard() {
                   value={slug}
                   onChange={(e) => setSlug(e.target.value.toLowerCase())}
                   disabled={!!actionLoading}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 font-mono"
+                  className="w-full bg-white border border-sky-100 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-sky-500 font-mono"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] text-slate-400 mb-1">店舗業種</label>
+                <label className="block text-[11px] text-slate-500 mb-1">店舗業種</label>
                 <select
                   value={industry}
                   onChange={(e) => setIndustry(e.target.value)}
                   disabled={!!actionLoading}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                  className="w-full bg-white border border-sky-100 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-sky-400"
                 >
                   <option value="pharmacy">薬局・調剤</option>
                   <option value="retail">その他小売</option>
@@ -452,11 +452,11 @@ export default function AdminDashboard() {
             </div>
 
             {/* アカウント設定 */}
-            <div className="space-y-3 border-t border-slate-850 pt-4">
-              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">初期管理者アカウント</h4>
+            <div className="space-y-3 border-t border-sky-100 pt-4">
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">初期管理者アカウント</h4>
 
               <div>
-                <label className="block text-[11px] text-slate-400 mb-1">管理者名</label>
+                <label className="block text-[11px] text-slate-500 mb-1">管理者名</label>
                 <input
                   type="text"
                   required
@@ -464,12 +464,12 @@ export default function AdminDashboard() {
                   value={adminName}
                   onChange={(e) => setAdminName(e.target.value)}
                   disabled={!!actionLoading}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-white border border-sky-100 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-sky-500"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] text-slate-400 mb-1">メールアドレス</label>
+                <label className="block text-[11px] text-slate-500 mb-1">メールアドレス</label>
                 <input
                   type="email"
                   required
@@ -477,12 +477,12 @@ export default function AdminDashboard() {
                   value={adminEmail}
                   onChange={(e) => setAdminEmail(e.target.value)}
                   disabled={!!actionLoading}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 font-mono"
+                  className="w-full bg-white border border-sky-100 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-sky-500 font-mono"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] text-slate-400 mb-1">初期ログインパスワード</label>
+                <label className="block text-[11px] text-slate-500 mb-1">初期ログインパスワード</label>
                 <input
                   type="password"
                   required
@@ -490,7 +490,7 @@ export default function AdminDashboard() {
                   value={adminPassword}
                   onChange={(e) => setAdminPassword(e.target.value)}
                   disabled={!!actionLoading}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-white border border-sky-100 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-sky-500"
                 />
               </div>
             </div>
@@ -498,7 +498,7 @@ export default function AdminDashboard() {
             <button
               type="submit"
               disabled={!!actionLoading}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 text-xs transition-all cursor-pointer shadow-lg active:scale-98 disabled:opacity-50"
+              className="w-full bg-sky-600 hover:bg-sky-500 text-slate-800 font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 text-xs transition-all cursor-pointer shadow-lg active:scale-98 disabled:opacity-50"
             >
               {actionLoading === 'create-tenant' ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

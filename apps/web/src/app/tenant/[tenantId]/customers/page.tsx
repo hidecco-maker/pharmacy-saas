@@ -211,10 +211,6 @@ export default function TenantCustomers() {
 
       setCustomers(customersArray);
       setProducts(productsArray);
-
-      if (productsArray.length > 0 && !addReqProductId) {
-        setAddReqProductId(productsArray[0].id);
-      }
     } catch (err) {
       console.error('Failed to fetch customers:', err);
       setCustomers([]);
@@ -305,7 +301,10 @@ export default function TenantCustomers() {
 
   // 紐付けの一時的な追加
   const handleAddReq = () => {
-    if (!addReqProductId) return;
+    if (!addReqProductId) {
+      showToast('⚠️ 薬品を選択してください');
+      return;
+    }
     const qty = parseFloat(addReqQuantity) || 1;
     const existsIndex = selectedCustomerReqs.findIndex(r => r.productId === addReqProductId);
     if (existsIndex >= 0) {
@@ -315,6 +314,8 @@ export default function TenantCustomers() {
     } else {
       setSelectedCustomerReqs([...selectedCustomerReqs, { productId: addReqProductId, quantity: qty }]);
     }
+    setAddReqProductId('');
+    setAddReqQuantity('1');
   };
 
   // 紐付けの訂正（数量変更）
@@ -712,7 +713,7 @@ export default function TenantCustomers() {
                   type="text"
                   value={editCustomerName}
                   onChange={(e) => setEditCustomerName(e.target.value)}
-                  className="w-full bg-white border border-sky-100 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-sky-400"
+                  className="w-full bg-white border border-sky-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-sky-400"
                 />
               </div>
               <div>
@@ -721,7 +722,7 @@ export default function TenantCustomers() {
                   type="text"
                   value={editCustomerNameKana}
                   onChange={(e) => setEditCustomerNameKana(e.target.value)}
-                  className="w-full bg-white border border-sky-100 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-sky-400"
+                  className="w-full bg-white border border-sky-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-sky-400"
                 />
               </div>
             </div>
@@ -734,7 +735,7 @@ export default function TenantCustomers() {
                   min="0"
                   value={editVisitInterval}
                   onChange={(e) => setEditVisitInterval(e.target.value)}
-                  className="w-full bg-white border border-sky-100 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
+                  className="w-full bg-white border border-sky-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-sky-400"
                 />
               </div>
               <div>
@@ -743,7 +744,7 @@ export default function TenantCustomers() {
                   type="date"
                   value={editLastVisitDate}
                   onChange={(e) => setEditLastVisitDate(e.target.value)}
-                  className="w-full bg-white border border-sky-100 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
+                  className="w-full bg-white border border-sky-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-sky-400"
                 />
               </div>
             </div>
@@ -754,8 +755,9 @@ export default function TenantCustomers() {
                 <select
                   value={addReqProductId}
                   onChange={(e) => setAddReqProductId(e.target.value)}
-                  className="flex-1 bg-white border border-sky-100 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
+                  className="flex-1 bg-white border border-sky-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-sky-400"
                 >
+                  <option value="">ーーー◀下から薬品を選択▶ーーー</option>
                   {products.map(p => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
@@ -765,7 +767,7 @@ export default function TenantCustomers() {
                   step="0.01"
                   value={addReqQuantity}
                   onChange={(e) => setAddReqQuantity(e.target.value)}
-                  className="w-16 bg-white border border-sky-100 rounded-xl px-2 py-1.5 text-xs text-center text-white focus:outline-none"
+                  className="w-16 bg-white border border-sky-200 rounded-xl px-2 py-1.5 text-xs text-center text-slate-800 focus:outline-none focus:border-sky-400"
                 />
                 <button
                   onClick={handleAddReq}
@@ -866,7 +868,7 @@ export default function TenantCustomers() {
                   value={newCustomerName}
                   onChange={(e) => setNewCustomerName(e.target.value)}
                   placeholder="例: 佐藤 健一"
-                  className="w-full bg-white border border-sky-100 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-sky-400"
+                  className="w-full bg-white border border-sky-200 rounded-xl px-4 py-2 text-sm text-slate-800 focus:outline-none focus:border-sky-400"
                 />
               </div>
               <div>
@@ -876,7 +878,7 @@ export default function TenantCustomers() {
                   value={newCustomerNameKana}
                   onChange={(e) => setNewCustomerNameKana(e.target.value)}
                   placeholder="例: サトウ ケンイチ"
-                  className="w-full bg-white border border-sky-100 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-sky-400"
+                  className="w-full bg-white border border-sky-200 rounded-xl px-4 py-2 text-sm text-slate-800 focus:outline-none focus:border-sky-400"
                 />
               </div>
             </div>
@@ -889,7 +891,7 @@ export default function TenantCustomers() {
                   min="0"
                   value={newCustomerInterval}
                   onChange={(e) => setNewCustomerInterval(e.target.value)}
-                  className="w-full bg-white border border-sky-100 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-sky-400"
+                  className="w-full bg-white border border-sky-200 rounded-xl px-4 py-2 text-sm text-slate-800 focus:outline-none focus:border-sky-400"
                 />
               </div>
               <div>
@@ -898,7 +900,7 @@ export default function TenantCustomers() {
                   type="date"
                   value={newCustomerLastVisit}
                   onChange={(e) => setNewCustomerLastVisit(e.target.value)}
-                  className="w-full bg-white border border-sky-100 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-sky-400"
+                  className="w-full bg-white border border-sky-200 rounded-xl px-4 py-2 text-sm text-slate-800 focus:outline-none focus:border-sky-400"
                 />
               </div>
             </div>
@@ -922,10 +924,10 @@ export default function TenantCustomers() {
           {csvMessage && (
             <div className={`p-3 rounded-xl text-xs mb-4 ${
               csvMessage.type === 'success'
-                ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
+                ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-600'
                 : csvMessage.type === 'warning'
-                ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400'
-                : 'bg-rose-500/10 border border-rose-500/20 text-rose-400'
+                ? 'bg-amber-500/10 border border-amber-500/20 text-amber-600'
+                : 'bg-rose-500/10 border border-rose-500/20 text-rose-600'
             }`}>
               <p className="font-semibold">{csvMessage.text}</p>
               {csvMessage.details && csvMessage.details.length > 0 && (
@@ -945,8 +947,8 @@ export default function TenantCustomers() {
             onClick={() => customerFileRef.current?.click()}
             className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all flex flex-col items-center justify-center min-h-[90px] mb-3 ${
               isDragOverCustomer
-                ? 'border-sky-400 bg-indigo-950/20 text-sky-600 scale-[1.01]'
-                : 'border-sky-100 hover:border-sky-300 bg-sky-50/40 text-slate-500'
+                ? 'border-sky-400 bg-sky-100 text-sky-600 scale-[1.01]'
+                : 'border-sky-200 hover:border-sky-300 bg-sky-50/40 text-slate-500'
             }`}
           >
             <Upload className="w-6 h-6 mb-1.5 text-sky-500 animate-bounce" />
@@ -971,7 +973,7 @@ export default function TenantCustomers() {
             value={customerCsvText}
             onChange={(e) => setCustomerCsvText(e.target.value)}
             placeholder={"名前,フリガナ,来店周期(日),最終来店日,希望商品一覧\n山田太郎,ヤマダタロウ,14,2026-05-25,アムロジピン錠5mg:2;ロキソプロフェンNa錠60mg:1\n鈴木花子,スズキハナコ,0,,\n田中次郎,,28,2026-05-01,"}
-            className="w-full bg-white border border-sky-100 rounded-xl p-3 text-xs focus:outline-none text-white font-mono mb-3"
+            className="w-full bg-white border border-sky-200 rounded-xl p-3 text-xs focus:outline-none text-slate-800 font-mono mb-3"
           />
 
           <div className="flex items-center justify-between mb-4">

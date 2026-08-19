@@ -252,7 +252,10 @@ export default function TenantInventory() {
   const handleAddPurchase = async (e: React.FormEvent) => {
     e.preventDefault();
     const validRows = purchaseRows.filter(r => r.productId && parseFloat(r.quantity) > 0 && r.wholesaler.trim());
-    if (validRows.length === 0) return;
+    if (validRows.length === 0) {
+      showToast('⚠️ 商品、数量、卸先名を入力してください');
+      return;
+    }
     setActionLoading('add-purchase');
     try {
       for (const row of validRows) {
@@ -282,7 +285,10 @@ export default function TenantInventory() {
   const handleAddSale = async (e: React.FormEvent) => {
     e.preventDefault();
     const validRows = saleRows.filter(r => r.productId && parseFloat(r.quantity) > 0);
-    if (validRows.length === 0) return;
+    if (validRows.length === 0) {
+      showToast('⚠️ 商品を選択し、数量を入力してください');
+      return;
+    }
     setActionLoading('add-sale');
     try {
       for (const row of validRows) {
@@ -308,7 +314,10 @@ export default function TenantInventory() {
   const handleAddDisposal = async (e: React.FormEvent) => {
     e.preventDefault();
     const validRows = disposalRows.filter(r => r.productId && parseFloat(r.quantity) > 0);
-    if (validRows.length === 0) return;
+    if (validRows.length === 0) {
+      showToast('⚠️ 商品を選択し、数量を入力してください');
+      return;
+    }
     setActionLoading('add-disposal');
     try {
       for (const row of validRows) {
@@ -559,11 +568,40 @@ export default function TenantInventory() {
                             type="number"
                             step="0.01"
                             value={prod.currentStock}
-              {/* 右カラム：登録・仕入れフォーム群 */}
+                            onChange={(e) => handleStockInputChange(prod.id, e.target.value)}
+                            onBlur={(e) => handleUpdateStock(prod.id, parseFloat(e.target.value) || 0)}
+                            className="w-16 bg-white border-x border-sky-100 text-center py-1.5 text-sm font-bold text-slate-800 focus:outline-none"
+                          />
+                          <button
+                            onClick={() => handleUpdateStock(prod.id, (parseFloat(prod.currentStock) || 0) + 1)}
+                            disabled={!!actionLoading}
+                            className="px-3 py-1.5 hover:bg-sky-100 text-slate-500 hover:text-slate-700 transition-all text-sm font-bold disabled:opacity-50 cursor-pointer"
+                          >
+                            +1
+                          </button>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteProduct(prod.id)}
+                        disabled={isDeleteLoading}
+                        className="text-slate-400 hover:text-rose-500 p-2 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
+                        title="商品を削除"
+                      >
+                        {isDeleteLoading ? <Loader2 className="w-4 h-4 animate-spin text-rose-500" /> : <Trash2 className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* 右カラム：登録・仕入れフォーム群 */}
         <div className="space-y-3">
 
           {/* ヘルパーテキスト */}
-          <p className="text-xs text-slate-500 italic px-1">ℹ️ タイトルをクリックで入力欄を開開</p>
+          <p className="text-xs text-slate-500 italic px-1">ℹ️ タイトルをクリックで入力欄を開閉</p>
 
           {/* 新規商品登録 */}
           <div className="bg-white border border-sky-100 rounded-2xl shadow-sm overflow-hidden">
@@ -635,14 +673,14 @@ export default function TenantInventory() {
                       </div>
                       <select value={row.productId} onChange={(e) => setPurchaseRows(purchaseRows.map((r, idx) => idx === i ? { ...r, productId: e.target.value } : r))}
                         className="w-full bg-white border border-sky-200 rounded-lg px-2 py-1.5 text-sm text-slate-800 focus:outline-none">
-                        <option value="">— 商品を選択 —</option>
+                        <option value="">ーーー◀下から商品を選択▶ーーー</option>
                         {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                       </select>
                       <div className="grid grid-cols-2 gap-2">
                         <input type="number" step="0.01" placeholder="数量" value={row.quantity}
                           onChange={(e) => setPurchaseRows(purchaseRows.map((r, idx) => idx === i ? { ...r, quantity: e.target.value } : r))}
                           className="bg-white border border-sky-200 rounded-lg px-2 py-1.5 text-sm text-slate-800 focus:outline-none" />
-                        <input type="text" placeholder="卖先名" value={row.wholesaler}
+                        <input type="text" placeholder="卸先名" value={row.wholesaler}
                           onChange={(e) => setPurchaseRows(purchaseRows.map((r, idx) => idx === i ? { ...r, wholesaler: e.target.value } : r))}
                           className="bg-white border border-sky-200 rounded-lg px-2 py-1.5 text-sm text-slate-800 focus:outline-none" />
                       </div>
@@ -688,7 +726,7 @@ export default function TenantInventory() {
                       </div>
                       <select value={row.productId} onChange={(e) => setSaleRows(saleRows.map((r, idx) => idx === i ? { ...r, productId: e.target.value } : r))}
                         className="w-full bg-white border border-sky-200 rounded-lg px-2 py-1.5 text-sm text-slate-800 focus:outline-none">
-                        <option value="">— 商品を選択 —</option>
+                        <option value="">ーーー◀下から商品を選択▶ーーー</option>
                         {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                       </select>
                       <input type="number" step="0.01" placeholder="数量" value={row.quantity}
@@ -736,7 +774,7 @@ export default function TenantInventory() {
                       </div>
                       <select value={row.productId} onChange={(e) => setDisposalRows(disposalRows.map((r, idx) => idx === i ? { ...r, productId: e.target.value } : r))}
                         className="w-full bg-white border border-sky-200 rounded-lg px-2 py-1.5 text-sm text-slate-800 focus:outline-none">
-                        <option value="">— 商品を選択 —</option>
+                        <option value="">ーーー◀下から商品を選択▶ーーー</option>
                         {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                       </select>
                       <div className="grid grid-cols-2 gap-2">
@@ -879,7 +917,7 @@ export default function TenantInventory() {
               value={productCsvText}
               onChange={(e) => setProductCsvText(e.target.value)}
               placeholder="商品名,現在庫数,単位&#10;アムロジピン錠,100,錠&#10;ワセリン,500.5,g"
-              className="w-full bg-white border border-sky-100 rounded-xl p-3 text-xs focus:outline-none text-white font-mono"
+              className="w-full bg-white border border-sky-200 rounded-xl p-3 text-xs focus:outline-none text-slate-800 font-mono"
             />
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-slate-500">※ 同名商品がある場合は在庫数と単位が上書きされます。</span>

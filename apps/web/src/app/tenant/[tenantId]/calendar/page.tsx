@@ -127,7 +127,6 @@ export default function TenantCalendar() {
       const data = await res.json();
       const productsArray = Array.isArray(data) ? data : [];
       setAllProducts(productsArray);
-      if (productsArray.length > 0) setAddMedProductId(productsArray[0].id);
     } catch (err) { console.error(err); }
   };
 
@@ -266,7 +265,10 @@ export default function TenantCalendar() {
 
   // 薬追加
   const handleAddMedicine = () => {
-    if (!addMedProductId) return;
+    if (!addMedProductId) {
+      showToast('⚠️ 薬品を選択してください');
+      return;
+    }
     const exists = visitActualItems.findIndex(i => i.productId === addMedProductId);
     const product = allProducts.find(p => p.id === addMedProductId);
     if (exists >= 0) {
@@ -282,6 +284,7 @@ export default function TenantCalendar() {
         nextQty: parseFloat(addMedNextQty) || 1,
       }]);
     }
+    setAddMedProductId('');
     setAddMedUsedQty('0');
     setAddMedNextQty('1');
   };
@@ -911,6 +914,7 @@ export default function TenantCalendar() {
                           onChange={(e) => setAddMedProductId(e.target.value)}
                           className="w-full bg-white border border-sky-200 rounded-lg px-2 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-sky-400"
                         >
+                          <option value="">ーーー◀下から薬品を選択▶ーーー</option>
                           {allProducts.map(p => (
                             <option key={p.id} value={p.id}>{p.name}</option>
                           ))}

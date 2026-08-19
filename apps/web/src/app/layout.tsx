@@ -21,14 +21,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           * { margin: 0; padding: 0; }
           html, body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: #020617;
-            color: #f1f5f9;
+            background-color: #f0f9ff;
+            color: #1e293b;
             -webkit-font-smoothing: antialiased;
           }
-          .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-          .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-          .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
-          .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
+          .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+          .custom-scrollbar::-webkit-scrollbar-track { background: rgba(224, 242, 254, 0.4); }
+          .custom-scrollbar::-webkit-scrollbar-thumb { background: #bae6fd; border-radius: 3px; }
+          .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #7dd3fc; }
           @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
           @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
           .animate-spin { animation: spin 1s linear infinite; }
