@@ -49,33 +49,35 @@ export default async function TenantLayout({ children, params }: TenantLayoutPro
       </div>
 
       {/* サイドバー */}
-      <aside className="w-full md:w-44 bg-white/95 backdrop-blur-md border-r border-sky-100 flex flex-col z-10 shrink-0 shadow-sm">
+      <aside className="w-full md:w-52 bg-white/95 backdrop-blur-md border-r border-sky-100 flex flex-col z-10 shrink-0 shadow-sm">
         {/* 店舗名表示 */}
-        <div className="p-3.5 border-b border-sky-100 flex items-center gap-2.5">
-          <div className="bg-sky-600 p-2 rounded-xl shadow-md shadow-sky-600/20 shrink-0">
-            <Store className="w-4 h-4 text-white" />
+        <div className="p-4 border-b border-sky-100 flex items-center gap-3">
+          <div className="bg-sky-600 p-2.5 rounded-2xl shadow-md shadow-sky-600/20 shrink-0">
+            <Store className="w-5 h-5 text-white" />
           </div>
           <div className="min-w-0">
-            <h2 className="font-bold text-slate-800 tracking-wide text-xs truncate">
+            <h2 className="font-extrabold text-slate-800 tracking-wide text-xs sm:text-sm truncate">
               {tenant.displayName}
             </h2>
-            <span className="text-[9px] text-sky-600 font-bold uppercase tracking-wider block">
-              ポータル
+            <span className="text-[10px] text-sky-600 font-bold uppercase tracking-wider block mt-0.5">
+              店舗ポータル
             </span>
           </div>
         </div>
 
-        {/* ナビゲーションメニュー */}
-        <nav className="flex-1 px-2.5 py-4 space-y-2">
+        {/* ナビゲーションメニュー（6つの大きなボタン） */}
+        <nav className="flex-1 p-3 space-y-3 overflow-y-auto custom-scrollbar">
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className="flex items-center gap-2.5 px-3 py-3 text-slate-600 hover:text-sky-700 hover:bg-sky-50 rounded-xl text-xs font-semibold transition-all duration-150 group"
+                className="flex items-center gap-3 p-3.5 bg-sky-50/60 hover:bg-sky-100/70 border border-sky-100/80 hover:border-sky-300 rounded-2xl text-xs sm:text-sm font-bold text-slate-700 hover:text-sky-800 shadow-sm hover:shadow transition-all duration-150 group active:scale-[0.98]"
               >
-                <Icon className="w-4.5 h-4.5 text-sky-500 group-hover:text-sky-600 transition-colors shrink-0" />
+                <div className="p-1.5 bg-white rounded-xl border border-sky-100 group-hover:border-sky-300 shadow-2xs shrink-0">
+                  <Icon className="w-5 h-5 text-sky-500 group-hover:text-sky-600 transition-colors" />
+                </div>
                 <span className="truncate">{item.label}</span>
               </Link>
             );
@@ -83,11 +85,11 @@ export default async function TenantLayout({ children, params }: TenantLayoutPro
         </nav>
 
         {/* 下部メニュー */}
-        <div className="p-2.5 border-t border-sky-100">
+        <div className="p-3 border-t border-sky-100">
           <form action="/api/auth/logout" method="POST">
             <button
               type="submit"
-              className="w-full flex items-center gap-2.5 px-3 py-2.5 text-rose-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl text-xs font-semibold transition-all duration-150 cursor-pointer"
+              className="w-full flex items-center justify-center gap-2.5 p-3 bg-rose-50/70 hover:bg-rose-100/80 border border-rose-200/60 hover:border-rose-300 text-rose-600 rounded-2xl text-xs sm:text-sm font-bold shadow-sm transition-all duration-150 cursor-pointer active:scale-[0.98]"
             >
               <LogOut className="w-4 h-4 shrink-0" />
               <span>ログアウト</span>

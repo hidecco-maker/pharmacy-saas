@@ -560,7 +560,7 @@ export default function TenantInventory() {
                           <button
                             onClick={() => handleUpdateStock(prod.id, prod.currentStock - 1)}
                             disabled={!!actionLoading}
-                            className="px-3 py-1.5 hover:bg-sky-100 text-slate-500 hover:text-white transition-all text-sm font-bold disabled:opacity-50 cursor-pointer"
+                            className="px-3 py-1.5 hover:bg-sky-100 text-slate-500 hover:text-slate-700 transition-all text-sm font-bold disabled:opacity-50 cursor-pointer"
                           >
                             -1
                           </button>
@@ -598,48 +598,50 @@ export default function TenantInventory() {
         </div>
 
         {/* 右カラム：登録・仕入れフォーム群 */}
-        <div className="space-y-3">
+        <div className="space-y-5">
 
           {/* ヘルパーテキスト */}
-          <p className="text-xs text-slate-500 italic px-1">ℹ️ タイトルをクリックで入力欄を開閉</p>
+          <p className="text-xs font-semibold text-slate-500 italic px-1">ℹ️ タイトルをクリックで入力欄を開閉できます</p>
 
           {/* 新規商品登録 */}
-          <div className="bg-white border border-sky-100 rounded-2xl shadow-sm overflow-hidden">
+          <div className="bg-white border border-sky-200/80 rounded-2xl shadow-md hover:shadow-lg transition-all duration-200 overflow-hidden">
             <button
               type="button"
               onClick={() => setOpenPanel(openPanel === 'product' ? null : 'product')}
-              className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-sky-50 transition-colors"
+              className="w-full flex items-center justify-between px-6 py-4.5 hover:bg-sky-50 transition-colors cursor-pointer"
             >
-              <span className="font-bold text-slate-700 text-sm flex items-center gap-2">
-                <Plus className="w-4 h-4 text-sky-600" />
+              <span className="font-extrabold text-slate-800 text-lg sm:text-xl flex items-center gap-3">
+                <div className="p-2 bg-sky-100 text-sky-600 rounded-xl">
+                  <Plus className="w-5 h-5" />
+                </div>
                 新規商品登録
               </span>
-              <span className="text-slate-500 text-xs">{openPanel === 'product' ? '▲' : '▼'}</span>
+              <span className="text-sky-600 font-bold text-sm bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-200">{openPanel === 'product' ? '▲ 閉じる' : '▼ 開く'}</span>
             </button>
             {openPanel === 'product' && (
-              <div className="px-5 pb-5 pt-1 border-t border-sky-50">
-                <form onSubmit={handleAddProduct} className="space-y-3 mt-3">
+              <div className="px-6 pb-6 pt-2 border-t border-sky-100">
+                <form onSubmit={handleAddProduct} className="space-y-4 mt-3">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-500 mb-1">商品名</label>
+                    <label className="block text-xs font-bold text-slate-600 mb-1">商品名</label>
                     <input type="text" required value={newProductName} onChange={(e) => setNewProductName(e.target.value)}
-                      placeholder="例: アムロジピン銔50mg"
-                      className="w-full bg-sky-50 border border-sky-200 rounded-xl px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-sky-500" />
+                      placeholder="例: アムロジピン錠5mg"
+                      className="w-full bg-white border border-sky-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-sky-500" />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-500 mb-1">初期在庫数</label>
+                      <label className="block text-xs font-bold text-slate-600 mb-1">初期在庫数</label>
                       <input type="number" step="0.01" required value={newProductStock} onChange={(e) => setNewProductStock(e.target.value)}
-                        className="w-full bg-sky-50 border border-sky-200 rounded-xl px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-sky-500" />
+                        className="w-full bg-white border border-sky-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-sky-500" />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-500 mb-1">単位（任意）</label>
+                      <label className="block text-xs font-bold text-slate-600 mb-1">単位（任意）</label>
                       <input type="text" value={newProductUnit} onChange={(e) => setNewProductUnit(e.target.value)}
                         placeholder="錠, g, ml"
-                        className="w-full bg-sky-50 border border-sky-200 rounded-xl px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-sky-500" />
+                        className="w-full bg-white border border-sky-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-sky-500" />
                     </div>
                   </div>
                   <button type="submit" disabled={actionLoading === 'add-product'}
-                    className="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-2 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-98 disabled:opacity-50 cursor-pointer text-sm">
+                    className="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-98 disabled:opacity-50 cursor-pointer text-sm shadow-md">
                     {actionLoading === 'add-product' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                     商品を追加
                   </button>
@@ -649,50 +651,52 @@ export default function TenantInventory() {
           </div>
 
           {/* 仕入れ登録 */}
-          <div className="bg-white border border-sky-100 rounded-2xl shadow-sm overflow-hidden">
+          <div className="bg-white border border-sky-200/80 rounded-2xl shadow-md hover:shadow-lg transition-all duration-200 overflow-hidden">
             <button type="button"
               onClick={() => setOpenPanel(openPanel === 'purchase' ? null : 'purchase')}
-              className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-sky-50 transition-colors">
-              <span className="font-bold text-slate-700 text-sm flex items-center gap-2">
-                <History className="w-4 h-4 text-emerald-600" />
+              className="w-full flex items-center justify-between px-6 py-4.5 hover:bg-sky-50 transition-colors cursor-pointer">
+              <span className="font-extrabold text-slate-800 text-lg sm:text-xl flex items-center gap-3">
+                <div className="p-2 bg-emerald-100 text-emerald-600 rounded-xl">
+                  <History className="w-5 h-5" />
+                </div>
                 仕入れ登録
               </span>
-              <span className="text-slate-500 text-xs">{openPanel === 'purchase' ? '▲' : '▼'}</span>
+              <span className="text-emerald-600 font-bold text-sm bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">{openPanel === 'purchase' ? '▲ 閉じる' : '▼ 開く'}</span>
             </button>
             {openPanel === 'purchase' && (
-              <div className="px-5 pb-5 pt-1 border-t border-sky-50">
-                <form onSubmit={handleAddPurchase} className="space-y-3 mt-3">
+              <div className="px-6 pb-6 pt-2 border-t border-sky-100">
+                <form onSubmit={handleAddPurchase} className="space-y-4 mt-3">
                   {purchaseRows.map((row, i) => (
-                    <div key={i} className="bg-sky-50 border border-sky-100 rounded-xl p-3 space-y-2 relative">
+                    <div key={i} className="bg-sky-50/70 border border-sky-200/70 rounded-xl p-3.5 space-y-2.5 relative shadow-2xs">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-bold text-sky-600">{i + 1}品目</span>
+                        <span className="text-xs font-bold text-sky-700">{i + 1}品目</span>
                         {purchaseRows.length > 1 && (
                           <button type="button" onClick={() => setPurchaseRows(purchaseRows.filter((_, idx) => idx !== i))}
-                            className="text-rose-400 hover:text-rose-600 text-xs">✕</button>
+                            className="text-rose-400 hover:text-rose-600 text-xs font-bold p-1">✕ 削除</button>
                         )}
                       </div>
                       <select value={row.productId} onChange={(e) => setPurchaseRows(purchaseRows.map((r, idx) => idx === i ? { ...r, productId: e.target.value } : r))}
-                        className="w-full bg-white border border-sky-200 rounded-lg px-2 py-1.5 text-sm text-slate-800 focus:outline-none">
+                        className="w-full bg-white border border-sky-200 rounded-lg px-2.5 py-2 text-sm text-slate-800 focus:outline-none focus:border-sky-400">
                         <option value="">ーーー◀下から商品を選択▶ーーー</option>
                         {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                       </select>
                       <div className="grid grid-cols-2 gap-2">
                         <input type="number" step="0.01" placeholder="数量" value={row.quantity}
                           onChange={(e) => setPurchaseRows(purchaseRows.map((r, idx) => idx === i ? { ...r, quantity: e.target.value } : r))}
-                          className="bg-white border border-sky-200 rounded-lg px-2 py-1.5 text-sm text-slate-800 focus:outline-none" />
+                          className="bg-white border border-sky-200 rounded-lg px-2.5 py-2 text-sm text-slate-800 focus:outline-none focus:border-sky-400" />
                         <input type="text" placeholder="卸先名" value={row.wholesaler}
                           onChange={(e) => setPurchaseRows(purchaseRows.map((r, idx) => idx === i ? { ...r, wholesaler: e.target.value } : r))}
-                          className="bg-white border border-sky-200 rounded-lg px-2 py-1.5 text-sm text-slate-800 focus:outline-none" />
+                          className="bg-white border border-sky-200 rounded-lg px-2.5 py-2 text-sm text-slate-800 focus:outline-none focus:border-sky-400" />
                       </div>
                     </div>
                   ))}
                   <button type="button"
                     onClick={() => setPurchaseRows([...purchaseRows, { productId: '', quantity: '10', wholesaler: purchaseRows[purchaseRows.length - 1]?.wholesaler || '' }])}
-                    className="w-full border border-dashed border-sky-300 text-sky-600 hover:bg-sky-50 text-xs py-2 rounded-xl transition-colors flex items-center justify-center gap-1">
-                    <Plus className="w-3 h-3" /> 次の品目を追加
+                    className="w-full border-2 border-dashed border-sky-300 text-sky-600 hover:bg-sky-50 text-xs font-bold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-1 cursor-pointer">
+                    <Plus className="w-3.5 h-3.5" /> 次の品目を追加
                   </button>
                   <button type="submit" disabled={actionLoading === 'add-purchase'}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-98 disabled:opacity-50 cursor-pointer text-sm">
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-98 disabled:opacity-50 cursor-pointer text-sm shadow-md">
                     {actionLoading === 'add-purchase' ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                     まとめて仕入れ登録
                   </button>
@@ -702,45 +706,47 @@ export default function TenantInventory() {
           </div>
 
           {/* 売上登録 */}
-          <div className="bg-white border border-sky-100 rounded-2xl shadow-sm overflow-hidden">
+          <div className="bg-white border border-sky-200/80 rounded-2xl shadow-md hover:shadow-lg transition-all duration-200 overflow-hidden">
             <button type="button"
               onClick={() => setOpenPanel(openPanel === 'sale' ? null : 'sale')}
-              className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-sky-50 transition-colors">
-              <span className="font-bold text-slate-700 text-sm flex items-center gap-2">
-                <ShoppingBag className="w-4 h-4 text-indigo-600" />
+              className="w-full flex items-center justify-between px-6 py-4.5 hover:bg-sky-50 transition-colors cursor-pointer">
+              <span className="font-extrabold text-slate-800 text-lg sm:text-xl flex items-center gap-3">
+                <div className="p-2 bg-indigo-100 text-indigo-600 rounded-xl">
+                  <ShoppingBag className="w-5 h-5" />
+                </div>
                 売上登録（手動）
               </span>
-              <span className="text-slate-500 text-xs">{openPanel === 'sale' ? '▲' : '▼'}</span>
+              <span className="text-indigo-600 font-bold text-sm bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200">{openPanel === 'sale' ? '▲ 閉じる' : '▼ 開く'}</span>
             </button>
             {openPanel === 'sale' && (
-              <div className="px-5 pb-5 pt-1 border-t border-sky-50">
-                <form onSubmit={handleAddSale} className="space-y-3 mt-3">
+              <div className="px-6 pb-6 pt-2 border-t border-sky-100">
+                <form onSubmit={handleAddSale} className="space-y-4 mt-3">
                   {saleRows.map((row, i) => (
-                    <div key={i} className="bg-sky-50 border border-sky-100 rounded-xl p-3 space-y-2">
+                    <div key={i} className="bg-sky-50/70 border border-sky-200/70 rounded-xl p-3.5 space-y-2.5 shadow-2xs">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-bold text-sky-600">{i + 1}品目</span>
+                        <span className="text-xs font-bold text-sky-700">{i + 1}品目</span>
                         {saleRows.length > 1 && (
                           <button type="button" onClick={() => setSaleRows(saleRows.filter((_, idx) => idx !== i))}
-                            className="text-rose-400 hover:text-rose-600 text-xs">✕</button>
+                            className="text-rose-400 hover:text-rose-600 text-xs font-bold p-1">✕ 削除</button>
                         )}
                       </div>
                       <select value={row.productId} onChange={(e) => setSaleRows(saleRows.map((r, idx) => idx === i ? { ...r, productId: e.target.value } : r))}
-                        className="w-full bg-white border border-sky-200 rounded-lg px-2 py-1.5 text-sm text-slate-800 focus:outline-none">
+                        className="w-full bg-white border border-sky-200 rounded-lg px-2.5 py-2 text-sm text-slate-800 focus:outline-none focus:border-sky-400">
                         <option value="">ーーー◀下から商品を選択▶ーーー</option>
                         {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                       </select>
                       <input type="number" step="0.01" placeholder="数量" value={row.quantity}
                         onChange={(e) => setSaleRows(saleRows.map((r, idx) => idx === i ? { ...r, quantity: e.target.value } : r))}
-                        className="w-full bg-white border border-sky-200 rounded-lg px-2 py-1.5 text-sm text-slate-800 focus:outline-none" />
+                        className="w-full bg-white border border-sky-200 rounded-lg px-2.5 py-2 text-sm text-slate-800 focus:outline-none focus:border-sky-400" />
                     </div>
                   ))}
                   <button type="button"
                     onClick={() => setSaleRows([...saleRows, { productId: '', quantity: '1' }])}
-                    className="w-full border border-dashed border-sky-300 text-sky-600 hover:bg-sky-50 text-xs py-2 rounded-xl transition-colors flex items-center justify-center gap-1">
-                    <Plus className="w-3 h-3" /> 次の品目を追加
+                    className="w-full border-2 border-dashed border-sky-300 text-sky-600 hover:bg-sky-50 text-xs font-bold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-1 cursor-pointer">
+                    <Plus className="w-3.5 h-3.5" /> 次の品目を追加
                   </button>
                   <button type="submit" disabled={actionLoading === 'add-sale'}
-                    className="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-2 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-98 disabled:opacity-50 cursor-pointer text-sm">
+                    className="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-98 disabled:opacity-50 cursor-pointer text-sm shadow-md">
                     {actionLoading === 'add-sale' ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                     まとめて売上登録
                   </button>
@@ -750,50 +756,52 @@ export default function TenantInventory() {
           </div>
 
           {/* 廃棄登録 */}
-          <div className="bg-white border border-sky-100 rounded-2xl shadow-sm overflow-hidden">
+          <div className="bg-white border border-sky-200/80 rounded-2xl shadow-md hover:shadow-lg transition-all duration-200 overflow-hidden">
             <button type="button"
               onClick={() => setOpenPanel(openPanel === 'disposal' ? null : 'disposal')}
-              className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-sky-50 transition-colors">
-              <span className="font-bold text-slate-700 text-sm flex items-center gap-2">
-                <Trash2 className="w-4 h-4 text-rose-500" />
+              className="w-full flex items-center justify-between px-6 py-4.5 hover:bg-sky-50 transition-colors cursor-pointer">
+              <span className="font-extrabold text-slate-800 text-lg sm:text-xl flex items-center gap-3">
+                <div className="p-2 bg-rose-100 text-rose-600 rounded-xl">
+                  <Trash2 className="w-5 h-5" />
+                </div>
                 廃棄登録
               </span>
-              <span className="text-slate-500 text-xs">{openPanel === 'disposal' ? '▲' : '▼'}</span>
+              <span className="text-rose-600 font-bold text-sm bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-200">{openPanel === 'disposal' ? '▲ 閉じる' : '▼ 開く'}</span>
             </button>
             {openPanel === 'disposal' && (
-              <div className="px-5 pb-5 pt-1 border-t border-sky-50">
-                <form onSubmit={handleAddDisposal} className="space-y-3 mt-3">
+              <div className="px-6 pb-6 pt-2 border-t border-sky-100">
+                <form onSubmit={handleAddDisposal} className="space-y-4 mt-3">
                   {disposalRows.map((row, i) => (
-                    <div key={i} className="bg-sky-50 border border-sky-100 rounded-xl p-3 space-y-2">
+                    <div key={i} className="bg-sky-50/70 border border-sky-200/70 rounded-xl p-3.5 space-y-2.5 shadow-2xs">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-bold text-sky-600">{i + 1}品目</span>
+                        <span className="text-xs font-bold text-sky-700">{i + 1}品目</span>
                         {disposalRows.length > 1 && (
                           <button type="button" onClick={() => setDisposalRows(disposalRows.filter((_, idx) => idx !== i))}
-                            className="text-rose-400 hover:text-rose-600 text-xs">✕</button>
+                            className="text-rose-400 hover:text-rose-600 text-xs font-bold p-1">✕ 削除</button>
                         )}
                       </div>
                       <select value={row.productId} onChange={(e) => setDisposalRows(disposalRows.map((r, idx) => idx === i ? { ...r, productId: e.target.value } : r))}
-                        className="w-full bg-white border border-sky-200 rounded-lg px-2 py-1.5 text-sm text-slate-800 focus:outline-none">
+                        className="w-full bg-white border border-sky-200 rounded-lg px-2.5 py-2 text-sm text-slate-800 focus:outline-none focus:border-sky-400">
                         <option value="">ーーー◀下から商品を選択▶ーーー</option>
                         {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                       </select>
                       <div className="grid grid-cols-2 gap-2">
                         <input type="number" step="0.01" placeholder="数量" value={row.quantity}
                           onChange={(e) => setDisposalRows(disposalRows.map((r, idx) => idx === i ? { ...r, quantity: e.target.value } : r))}
-                          className="bg-white border border-sky-200 rounded-lg px-2 py-1.5 text-sm text-slate-800 focus:outline-none" />
+                          className="bg-white border border-sky-200 rounded-lg px-2.5 py-2 text-sm text-slate-800 focus:outline-none focus:border-sky-400" />
                         <input type="text" placeholder="廃棄理由" value={row.reason}
                           onChange={(e) => setDisposalRows(disposalRows.map((r, idx) => idx === i ? { ...r, reason: e.target.value } : r))}
-                          className="bg-white border border-sky-200 rounded-lg px-2 py-1.5 text-sm text-slate-800 focus:outline-none" />
+                          className="bg-white border border-sky-200 rounded-lg px-2.5 py-2 text-sm text-slate-800 focus:outline-none focus:border-sky-400" />
                       </div>
                     </div>
                   ))}
                   <button type="button"
                     onClick={() => setDisposalRows([...disposalRows, { productId: '', quantity: '1', reason: '' }])}
-                    className="w-full border border-dashed border-sky-300 text-sky-600 hover:bg-sky-50 text-xs py-2 rounded-xl transition-colors flex items-center justify-center gap-1">
-                    <Plus className="w-3 h-3" /> 次の品目を追加
+                    className="w-full border-2 border-dashed border-sky-300 text-sky-600 hover:bg-sky-50 text-xs font-bold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-1 cursor-pointer">
+                    <Plus className="w-3.5 h-3.5" /> 次の品目を追加
                   </button>
                   <button type="submit" disabled={actionLoading === 'add-disposal'}
-                    className="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-2 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-98 disabled:opacity-50 cursor-pointer text-sm">
+                    className="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-98 disabled:opacity-50 cursor-pointer text-sm shadow-md">
                     {actionLoading === 'add-disposal' ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                     まとめて廃棄登録
                   </button>
@@ -801,7 +809,6 @@ export default function TenantInventory() {
               </div>
             )}
           </div>
-
         </div>
       </div>
 

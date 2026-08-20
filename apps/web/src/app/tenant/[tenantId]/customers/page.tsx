@@ -691,66 +691,68 @@ export default function TenantCustomers() {
       {/* ==============================
           右カラム：編集・登録・CSV（独立スクロール）
           ============================== */}
-      <div className="xl:col-span-5 overflow-y-auto custom-scrollbar h-full space-y-5 pr-0.5 min-w-0">
+      <div className="xl:col-span-5 overflow-y-auto custom-scrollbar h-full space-y-7 pr-0.5 min-w-0">
 
         {/* 選択顧客の希望商品 & スケジュール編集 */}
         {selectedCustomerId ? (
-          <div className="bg-white border border-sky-300 rounded-2xl p-5 sm:p-6 shadow-xl space-y-5">
-            <div className="flex items-center justify-between border-b border-sky-100 pb-3">
-              <h3 className="font-bold text-slate-700 text-base flex items-center gap-2">
-                <Save className="w-5 h-5 text-sky-500 shrink-0" />
+          <div className="bg-white border border-sky-300/90 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow space-y-5">
+            <div className="flex items-center justify-between border-b border-sky-100 pb-3.5">
+              <h3 className="font-extrabold text-slate-800 text-lg sm:text-xl flex items-center gap-3">
+                <div className="p-2 bg-sky-100 text-sky-600 rounded-xl">
+                  <Save className="w-5 h-5" />
+                </div>
                 設定・希望の編集
               </h3>
-              <span className="text-xs bg-sky-50 text-sky-500 font-semibold px-2.5 py-0.5 rounded border border-sky-200 truncate max-w-[8rem]">
+              <span className="text-xs bg-sky-50 text-sky-600 font-bold px-3 py-1 rounded-lg border border-sky-200 truncate max-w-[9rem]">
                 {customers.find(c => c.id === selectedCustomerId)?.name}
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3.5">
               <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1">氏名</label>
+                <label className="block text-xs font-bold text-slate-600 mb-1">氏名</label>
                 <input
                   type="text"
                   value={editCustomerName}
                   onChange={(e) => setEditCustomerName(e.target.value)}
-                  className="w-full bg-white border border-sky-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-sky-400"
+                  className="w-full bg-white border border-sky-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 focus:outline-none focus:border-sky-400"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1">フリガナ（ソート用）</label>
+                <label className="block text-xs font-bold text-slate-600 mb-1">フリガナ（ソート用）</label>
                 <input
                   type="text"
                   value={editCustomerNameKana}
                   onChange={(e) => setEditCustomerNameKana(e.target.value)}
-                  className="w-full bg-white border border-sky-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-sky-400"
+                  className="w-full bg-white border border-sky-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 focus:outline-none focus:border-sky-400"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3.5">
               <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1">来店周期（0=来店不要）</label>
+                <label className="block text-xs font-bold text-slate-600 mb-1">来店周期（0=来店不要）</label>
                 <input
                   type="number"
                   min="0"
                   value={editVisitInterval}
                   onChange={(e) => setEditVisitInterval(e.target.value)}
-                  className="w-full bg-white border border-sky-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-sky-400"
+                  className="w-full bg-white border border-sky-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 focus:outline-none focus:border-sky-400"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1">最終来店日（起点）</label>
+                <label className="block text-xs font-bold text-slate-600 mb-1">最終来店日（起点）</label>
                 <input
                   type="date"
                   value={editLastVisitDate}
                   onChange={(e) => setEditLastVisitDate(e.target.value)}
-                  className="w-full bg-white border border-sky-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-sky-400"
+                  className="w-full bg-white border border-sky-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 focus:outline-none focus:border-sky-400"
                 />
               </div>
             </div>
 
             <div className="border-t border-sky-100 pt-4 space-y-2.5">
-              <label className="block text-xs font-semibold text-slate-500">希望商品の新規追加</label>
+              <label className="block text-xs font-bold text-slate-600">希望商品の新規追加</label>
               <div className="flex gap-2 items-center">
                 <select
                   value={addReqProductId}
@@ -773,7 +775,7 @@ export default function TenantCustomers() {
                 <button
                   onClick={handleAddReq}
                   type="button"
-                  className="shrink-0 bg-sky-600 hover:bg-sky-500 text-white font-bold px-3 py-2 rounded-xl text-xs transition-colors cursor-pointer shadow-sm active:scale-95"
+                  className="shrink-0 bg-sky-600 hover:bg-sky-500 text-white font-bold px-3.5 py-2 rounded-xl text-xs transition-colors cursor-pointer shadow-sm active:scale-95"
                 >
                   追加
                 </button>
@@ -781,7 +783,7 @@ export default function TenantCustomers() {
             </div>
 
             <div className="space-y-3">
-              <label className="block text-xs font-semibold text-slate-500">登録済み希望商品の訂正</label>
+              <label className="block text-xs font-bold text-slate-600">登録済み希望商品の訂正</label>
               {selectedCustomerReqs.length === 0 ? (
                 <p className="text-slate-500 text-xs italic">希望商品は現在ありません。</p>
               ) : (
@@ -836,7 +838,7 @@ export default function TenantCustomers() {
             <button
               onClick={handleSaveReqs}
               disabled={actionLoading === 'save-reqs'}
-              className="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-2 rounded-xl flex items-center justify-center gap-2 text-xs transition-all cursor-pointer"
+              className="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 text-xs sm:text-sm shadow-md transition-all cursor-pointer"
             >
               {actionLoading === 'save-reqs' ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -847,68 +849,70 @@ export default function TenantCustomers() {
             </button>
           </div>
         ) : (
-          <div className="bg-white border border-sky-100 rounded-2xl p-6 shadow-xl text-center py-10">
-            <Users className="w-10 h-10 text-slate-600 mx-auto mb-2" />
-            <p className="text-slate-500 text-xs">顧客一覧から顧客を選択すると、<br />希望商品リストの訂正やスケジュール編集が行えます。</p>
+          <div className="bg-white border border-sky-200/80 rounded-2xl p-6 shadow-lg text-center py-10">
+            <Users className="w-12 h-12 text-sky-400 mx-auto mb-3" />
+            <p className="text-slate-600 text-xs font-semibold">顧客一覧から顧客を選択すると、<br />希望商品リストの訂正やスケジュール編集が行えます。</p>
           </div>
         )}
 
         {/* 新規顧客追加フォーム */}
-        <div className="bg-white border border-sky-100 rounded-2xl p-6 shadow-xl">
-          <h3 className="font-bold text-slate-700 text-base mb-4 border-b border-sky-100 pb-3 flex items-center gap-2">
-            <UserPlus className="w-5 h-5 text-sky-500" />
+        <div className="bg-white border border-sky-200/80 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow">
+          <h3 className="font-extrabold text-slate-800 text-lg sm:text-xl mb-4 border-b border-sky-100 pb-3.5 flex items-center gap-3">
+            <div className="p-2 bg-sky-100 text-sky-600 rounded-xl">
+              <UserPlus className="w-5 h-5" />
+            </div>
             新規顧客登録
           </h3>
           <form onSubmit={handleAddCustomer} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1.5">氏名</label>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">氏名</label>
                 <input
                   type="text"
                   required
                   value={newCustomerName}
                   onChange={(e) => setNewCustomerName(e.target.value)}
                   placeholder="例: 佐藤 健一"
-                  className="w-full bg-white border border-sky-200 rounded-xl px-4 py-2 text-sm text-slate-800 focus:outline-none focus:border-sky-400"
+                  className="w-full bg-white border border-sky-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-sky-400"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1.5">フリガナ（ソート用）</label>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">フリガナ（ソート用）</label>
                 <input
                   type="text"
                   value={newCustomerNameKana}
                   onChange={(e) => setNewCustomerNameKana(e.target.value)}
                   placeholder="例: サトウ ケンイチ"
-                  className="w-full bg-white border border-sky-200 rounded-xl px-4 py-2 text-sm text-slate-800 focus:outline-none focus:border-sky-400"
+                  className="w-full bg-white border border-sky-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-sky-400"
                 />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1.5">来店周期（日）</label>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">来店周期（日）</label>
                 <input
                   type="number"
                   required
                   min="0"
                   value={newCustomerInterval}
                   onChange={(e) => setNewCustomerInterval(e.target.value)}
-                  className="w-full bg-white border border-sky-200 rounded-xl px-4 py-2 text-sm text-slate-800 focus:outline-none focus:border-sky-400"
+                  className="w-full bg-white border border-sky-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-sky-400"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1.5">最終来店日（任意）</label>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">最終来店日（任意）</label>
                 <input
                   type="date"
                   value={newCustomerLastVisit}
                   onChange={(e) => setNewCustomerLastVisit(e.target.value)}
-                  className="w-full bg-white border border-sky-200 rounded-xl px-4 py-2 text-sm text-slate-800 focus:outline-none focus:border-sky-400"
+                  className="w-full bg-white border border-sky-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-sky-400"
                 />
               </div>
             </div>
             <button
               type="submit"
               disabled={actionLoading === 'add-customer'}
-              className="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-2 rounded-xl flex items-center justify-center gap-2 text-xs transition-all cursor-pointer"
+              className="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 text-xs sm:text-sm shadow-md transition-all cursor-pointer"
             >
               顧客を追加
             </button>
@@ -916,9 +920,11 @@ export default function TenantCustomers() {
         </div>
 
         {/* CSVインポート（右カラム内に統合） */}
-        <div className="bg-white border border-sky-100 rounded-2xl p-6 shadow-xl">
-          <h3 className="font-bold text-slate-700 text-base mb-4 border-b border-sky-100 pb-3 flex items-center gap-2">
-            <Upload className="w-5 h-5 text-sky-500" />
+        <div className="bg-white border border-sky-200/80 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow">
+          <h3 className="font-extrabold text-slate-800 text-lg sm:text-xl mb-4 border-b border-sky-100 pb-3.5 flex items-center gap-3">
+            <div className="p-2 bg-sky-100 text-sky-600 rounded-xl">
+              <Upload className="w-5 h-5" />
+            </div>
             顧客台帳 CSVインポート
           </h3>
 
@@ -982,7 +988,7 @@ export default function TenantCustomers() {
             <button
               onClick={() => processAndImportCsv(customerCsvText)}
               disabled={actionLoading === 'import-customers'}
-              className="bg-sky-600 hover:bg-sky-500 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+              className="bg-sky-600 hover:bg-sky-500 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50 cursor-pointer shadow-md"
             >
               テキストをインポート
             </button>
