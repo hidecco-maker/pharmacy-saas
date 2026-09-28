@@ -743,7 +743,7 @@ export default function TenantCalendar() {
                     ? 'text-blue-400'
                     : 'text-slate-600'
                 }`}>
-                  {day.getDate() === 1 || idx === 0 ? `${day.getMonth() + 1}/${day.getDate()}` : day.getDate()}
+                  {`${day.getMonth() + 1}/${day.getDate()}`}
                 </span>
                 <div className="flex items-center gap-1">
                   {holidayName && (
