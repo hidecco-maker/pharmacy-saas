@@ -33,6 +33,17 @@ function getTenantDb(tenantId) {
   return new Database(dbPath, { fileMustExist: true });
 }
 
+function getAppointmentColor(count) {
+  if (count >= 7) return '#e74c3c';
+  if (count >= 5) return '#e67e22';
+  if (count >= 3) return '#f1c40f';
+  return '#2ecc71';
+}
+
+function getAppointmentTextColor(count) {
+  return count >= 3 && count < 5 ? '#333333' : '#ffffff';
+}
+
 /**
  * Add days to a date string in MM/DD or YYYY-MM-DD format
  */
@@ -114,11 +125,13 @@ function generateFlexCalendar(list, overdueGroups) {
 
       // 予定があるかチェック
       const visits = list.filter(entry => entry.nextDate === yyyymmdd || entry.nextDate === mmdd);
-      const hasVisits = visits.length > 0;
+      const visitCount = visits.length;
+      const hasVisits = visitCount > 0;
 
       if (hasVisits) {
         visits.forEach(v => {
           matchedAppointments.push({
+            dateKey: yyyymmdd,
             date: `${mm}/${dd}`,
             name: v.name,
             cycle: v.cycle
@@ -144,14 +157,14 @@ function generateFlexCalendar(list, overdueGroups) {
               "width": "26px",
               "height": "26px",
               "cornerRadius": "xxl",
-              "backgroundColor": "#2ecc71",
+              "backgroundColor": getAppointmentColor(visitCount),
               "justifyContent": "center",
               "alignItems": "center",
               "contents": [
                 {
                   "type": "text",
                   "text": dayNum,
-                  "color": "#ffffff",
+                  "color": getAppointmentTextColor(visitCount),
                   "size": "xs",
                   "align": "center",
                   "weight": "bold"
@@ -230,31 +243,37 @@ function generateFlexCalendar(list, overdueGroups) {
       "margin": "sm"
     });
   } else {
-    matchedAppointments.sort((a, b) => a.date.localeCompare(b.date));
-    
+    matchedAppointments.sort((a, b) => a.dateKey.localeCompare(b.dateKey));
+    const appointmentGroups = [];
     matchedAppointments.forEach((app) => {
+      let group = appointmentGroups[appointmentGroups.length - 1];
+      if (!group || group.dateKey !== app.dateKey) {
+        group = { dateKey: app.dateKey, date: app.date, appointments: [] };
+        appointmentGroups.push(group);
+      }
+      group.appointments.push(app);
+    });
+
+    appointmentGroups.forEach((group) => {
       listItemsFlex.push({
         "type": "box",
-        "layout": "horizontal",
+        "layout": "vertical",
         "margin": "sm",
-        "alignItems": "center",
         "contents": [
           {
-            "type": "box",
-            "layout": "vertical",
-            "width": "6px",
-            "height": "6px",
-            "cornerRadius": "xxl",
-            "backgroundColor": "#2ecc71",
-            "contents": []
+            "type": "text",
+            "text": `${group.date}・・・${group.appointments.length}件`,
+            "size": "xs",
+            "weight": "bold",
+            "color": "#2c3e50"
           },
           {
             "type": "text",
-            "text": `${app.date}  ${app.name} (${app.cycle}日周期)`,
+            "text": group.appointments.map(app => `・${app.name} (${app.cycle}日周期)`).join('\n'),
             "size": "xs",
             "color": "#444444",
-            "flex": 1,
-            "margin": "md"
+            "wrap": true,
+            "margin": "xs"
           }
         ]
       });

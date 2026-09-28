@@ -36,6 +36,7 @@ const getLocalDateStr = () => {
 };
 
 const todayStr = getLocalDateStr();
+const TOUCH_DRAG_START_TOLERANCE_PX = 12;
 
 const formatDateJP = (dateStr: string) => {
   if (!dateStr) return '';
@@ -86,13 +87,22 @@ export default function TenantCalendar() {
   const [modalDraggedIndex, setModalDraggedIndex] = useState<number | null>(null);
   const [isModalTouchDragging, setIsModalTouchDragging] = useState(false);
   const modalTouchTimeoutRef = useRef<any>(null);
+  const modalTouchStartRef = useRef<{ x: number; y: number } | null>(null);
 
   // カレンダーDnD（来店日の移動）
   const [dragVisit, setDragVisit] = useState<any | null>(null);
   const touchDragVisitRef = useRef<any>(null);
   const touchTimerRef = useRef<any>(null);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const touchOverDateRef = useRef<string | null>(null);
   const [isTouchDraggingVisit, setIsTouchDraggingVisit] = useState(false);
+  const touchMoveGuardRef = useRef<((event: TouchEvent) => void) | null>(null);
+  const touchScrollStylesRef = useRef<{
+    bodyOverflow: string;
+    bodyTouchAction: string;
+    rootOverflow: string;
+    rootTouchAction: string;
+  } | null>(null);
 
   // D&D移動確認ポップアップ
   const [confirmMove, setConfirmMove] = useState<{
@@ -126,6 +136,51 @@ export default function TenantCalendar() {
       autoScrollRafRef.current = null;
     }
   };
+
+  const lockTouchScroll = () => {
+    if (touchScrollStylesRef.current) return;
+
+    const bodyStyle = document.body.style;
+    const rootStyle = document.documentElement.style;
+    touchScrollStylesRef.current = {
+      bodyOverflow: bodyStyle.overflow,
+      bodyTouchAction: bodyStyle.touchAction,
+      rootOverflow: rootStyle.overflow,
+      rootTouchAction: rootStyle.touchAction,
+    };
+    bodyStyle.overflow = 'hidden';
+    bodyStyle.touchAction = 'none';
+    rootStyle.overflow = 'hidden';
+    rootStyle.touchAction = 'none';
+
+    const guardTouchMove = (event: TouchEvent) => {
+      if (event.cancelable) event.preventDefault();
+    };
+    touchMoveGuardRef.current = guardTouchMove;
+    document.addEventListener('touchmove', guardTouchMove, { passive: false, capture: true });
+  };
+
+  const unlockTouchScroll = () => {
+    if (touchMoveGuardRef.current) {
+      document.removeEventListener('touchmove', touchMoveGuardRef.current, true);
+      touchMoveGuardRef.current = null;
+    }
+
+    const previousStyles = touchScrollStylesRef.current;
+    if (!previousStyles) return;
+    document.body.style.overflow = previousStyles.bodyOverflow;
+    document.body.style.touchAction = previousStyles.bodyTouchAction;
+    document.documentElement.style.overflow = previousStyles.rootOverflow;
+    document.documentElement.style.touchAction = previousStyles.rootTouchAction;
+    touchScrollStylesRef.current = null;
+  };
+
+  useEffect(() => () => {
+    clearTimeout(touchTimerRef.current);
+    clearTimeout(modalTouchTimeoutRef.current);
+    stopAutoScroll();
+    unlockTouchScroll();
+  }, []);
 
   const DRAG_OVER_CLASSES = ['bg-sky-100', 'border-sky-400', 'ring-1', 'ring-sky-400/60', 'scale-[1.02]'];
 
@@ -256,16 +311,29 @@ export default function TenantCalendar() {
   const handleModalDragEnd = () => setModalDraggedIndex(null);
 
   // タッチによるモーダル内薬品並び替え（長押し）
-  const handleModalTouchStart = (index: number) => {
+  const handleModalTouchStart = (index: number, e: React.TouchEvent<HTMLElement>) => {
+    const touch = e.touches[0];
+    if (!touch) return;
+    modalTouchStartRef.current = { x: touch.clientX, y: touch.clientY };
     modalTouchTimeoutRef.current = setTimeout(() => {
       setIsModalTouchDragging(true);
       setModalDraggedIndex(index);
+      lockTouchScroll();
     }, 400); // 400ms long press to start dragging
   };
 
   const handleModalTouchMove = (e: React.TouchEvent) => {
     if (!isModalTouchDragging || modalDraggedIndex === null) {
-      clearTimeout(modalTouchTimeoutRef.current);
+      const touch = e.touches[0];
+      const start = modalTouchStartRef.current;
+      if (touch && start) {
+        const movedX = touch.clientX - start.x;
+        const movedY = touch.clientY - start.y;
+        if (Math.hypot(movedX, movedY) > TOUCH_DRAG_START_TOLERANCE_PX) {
+          clearTimeout(modalTouchTimeoutRef.current);
+          modalTouchStartRef.current = null;
+        }
+      }
       return;
     }
     if (e.cancelable) e.preventDefault();
@@ -290,8 +358,18 @@ export default function TenantCalendar() {
 
   const handleModalTouchEnd = () => {
     clearTimeout(modalTouchTimeoutRef.current);
+    modalTouchStartRef.current = null;
     setIsModalTouchDragging(false);
     setModalDraggedIndex(null);
+    unlockTouchScroll();
+  };
+
+  const handleModalTouchCancel = () => {
+    clearTimeout(modalTouchTimeoutRef.current);
+    modalTouchStartRef.current = null;
+    setIsModalTouchDragging(false);
+    setModalDraggedIndex(null);
+    unlockTouchScroll();
   };
 
   // 薬追加
@@ -396,19 +474,29 @@ export default function TenantCalendar() {
   };
 
   // タッチによる来店日移動（長押し）
-  const handleVisitTouchStart = (visit: any) => {
+  const handleVisitTouchStart = (visit: any, e: React.TouchEvent<HTMLElement>) => {
+    const touch = e.touches[0];
+    if (!touch) return;
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
     touchTimerRef.current = setTimeout(() => {
       setIsTouchDraggingVisit(true);
       touchDragVisitRef.current = visit;
-      // スクロールを完全に止める（iOS / Android）
-      document.body.style.overflow = 'hidden';
-      document.body.style.touchAction = 'none';
+      lockTouchScroll();
     }, 300);
   };
 
   const handleVisitTouchMove = (e: React.TouchEvent) => {
     if (!isTouchDraggingVisit) {
-      clearTimeout(touchTimerRef.current);
+      const touch = e.touches[0];
+      const start = touchStartRef.current;
+      if (touch && start) {
+        const movedX = touch.clientX - start.x;
+        const movedY = touch.clientY - start.y;
+        if (Math.hypot(movedX, movedY) > TOUCH_DRAG_START_TOLERANCE_PX) {
+          clearTimeout(touchTimerRef.current);
+          touchStartRef.current = null;
+        }
+      }
       return;
     }
     // 通常の画面スクロールを完全に防止
@@ -449,14 +537,13 @@ export default function TenantCalendar() {
 
   const handleVisitTouchEnd = async () => {
     clearTimeout(touchTimerRef.current);
+    touchStartRef.current = null;
     stopAutoScroll();
     const targetDate = touchOverDateRef.current;
     if (targetDate) {
       document.querySelector(`[data-calendar-date="${targetDate}"]`)?.classList.remove(...DRAG_OVER_CLASSES);
     }
-    // スクロールロック解除
-    document.body.style.overflow = '';
-    document.body.style.touchAction = '';
+    unlockTouchScroll();
 
     if (isTouchDraggingVisit && touchDragVisitRef.current && targetDate) {
       if (touchDragVisitRef.current.visitDate !== targetDate) {
@@ -467,6 +554,20 @@ export default function TenantCalendar() {
         });
       }
     }
+    setIsTouchDraggingVisit(false);
+    touchDragVisitRef.current = null;
+    touchOverDateRef.current = null;
+  };
+
+  const handleVisitTouchCancel = () => {
+    clearTimeout(touchTimerRef.current);
+    touchStartRef.current = null;
+    stopAutoScroll();
+    const targetDate = touchOverDateRef.current;
+    if (targetDate) {
+      document.querySelector(`[data-calendar-date="${targetDate}"]`)?.classList.remove(...DRAG_OVER_CLASSES);
+    }
+    unlockTouchScroll();
     setIsTouchDraggingVisit(false);
     touchDragVisitRef.current = null;
     touchOverDateRef.current = null;
@@ -668,9 +769,21 @@ export default function TenantCalendar() {
                       draggable={!isCompleted}
                       onDragStart={(e) => !isCompleted && handleVisitDragStart(e, visit)}
                       onDragEnd={() => setDragVisit(null)}
-                      onTouchStart={() => !isCompleted && handleVisitTouchStart(visit)}
+                      onTouchStart={(e) => {
+                        if (isCompleted) return;
+                        // Prevent native HTML drag from stealing a touch long press.
+                        e.currentTarget.draggable = false;
+                        handleVisitTouchStart(visit, e);
+                      }}
                       onTouchMove={handleVisitTouchMove}
-                      onTouchEnd={handleVisitTouchEnd}
+                      onTouchEnd={(e) => {
+                        e.currentTarget.draggable = !isCompleted;
+                        void handleVisitTouchEnd();
+                      }}
+                      onTouchCancel={(e) => {
+                        e.currentTarget.draggable = !isCompleted;
+                        handleVisitTouchCancel();
+                      }}
                       onClick={() => !isTouchDraggingVisit && openVisitModal(visit)}
                       className={`border rounded p-1 text-[10px] text-left select-none transition-all ${
                         isCompleted
@@ -851,11 +964,11 @@ export default function TenantCalendar() {
                           </div>
                         </div>
                         <div className="flex items-center gap-1 bg-white border border-sky-200 rounded-xl px-3 py-2 min-w-[90px] justify-center">
-                          <button type="button" onClick={() => setVisitNextInterval(Math.max(0, visitNextInterval - 1))}
-                            className="text-slate-400 hover:text-sky-600 font-bold text-lg leading-none cursor-pointer">−</button>
+                          <button type="button" aria-label="予定日を1日減らす" onClick={() => setVisitNextInterval(Math.max(0, visitNextInterval - 1))}
+                            className="inline-flex min-h-11 min-w-11 select-none touch-none items-center justify-center rounded-lg text-slate-500 hover:text-sky-600 font-bold text-lg leading-none cursor-pointer">−</button>
                           <span className="text-slate-800 font-bold text-base mx-2 min-w-[2rem] text-center">{visitNextInterval}</span>
-                          <button type="button" onClick={() => setVisitNextInterval(Math.min(365, visitNextInterval + 1))}
-                            className="text-slate-400 hover:text-sky-600 font-bold text-lg leading-none cursor-pointer">＋</button>
+                          <button type="button" aria-label="予定日を1日増やす" onClick={() => setVisitNextInterval(Math.min(365, visitNextInterval + 1))}
+                            className="inline-flex min-h-11 min-w-11 select-none touch-none items-center justify-center rounded-lg text-slate-500 hover:text-sky-600 font-bold text-lg leading-none cursor-pointer">＋</button>
                         </div>
                         <span className="text-sm text-slate-500 shrink-0">日後</span>
                       </div>
@@ -927,9 +1040,19 @@ export default function TenantCalendar() {
                               onDragStart={() => handleModalDragStart(idx)}
                               onDragOver={(e) => handleModalDragOver(e, idx)}
                               onDragEnd={handleModalDragEnd}
-                              onTouchStart={() => handleModalTouchStart(idx)}
+                              onTouchStart={(e) => {
+                                e.currentTarget.draggable = false;
+                                handleModalTouchStart(idx, e);
+                              }}
                               onTouchMove={handleModalTouchMove}
-                              onTouchEnd={handleModalTouchEnd}
+                              onTouchEnd={(e) => {
+                                e.currentTarget.draggable = true;
+                                handleModalTouchEnd();
+                              }}
+                              onTouchCancel={(e) => {
+                                e.currentTarget.draggable = true;
+                                handleModalTouchCancel();
+                              }}
                               className={`bg-white border rounded-xl px-3 py-2 grid grid-cols-[auto_1fr_auto_auto_auto] items-center gap-2 select-none transition-all ${
                                 isDraggingThis ? 'opacity-40 border-sky-400 scale-95' : 'border-sky-100 hover:border-sky-300 shadow-sm'
                               }`}
