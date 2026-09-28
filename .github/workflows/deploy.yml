@@ -103,8 +103,8 @@ jobs:
   # the OCI VM itself) directly pulls the latest images from GHCR
   # and restarts the containers. No external SSH connection needed.
   #
-  # Required GitHub Secrets (Settings > Secrets > Actions):
-  #   GHCR_PAT : GitHub Personal Access Token (read:packages)
+  # Uses the run-scoped GITHUB_TOKEN with contents:read and packages:read.
+  # No long-lived package token is required.
   #
   # Setup: Install GitHub Actions self-hosted runner on OCI VM.
   #   See: https://github.com/mkdshidecco-ui/pharmacy-saas/settings/actions/runners
@@ -113,11 +113,14 @@ jobs:
     name: "Job2: Deploy on OCI VM (self-hosted)"
     runs-on: self-hosted
     needs: build-and-push
+    permissions:
+      contents: read
+      packages: read
 
     steps:
       - name: "Deploy: Pull images and restart containers"
         env:
-          GHCR_PAT: ${{ secrets.GHCR_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
           GITHUB_ACTOR: ${{ github.actor }}
         run: |
@@ -132,7 +135,7 @@ jobs:
           # [1/4] Login to GHCR on the VM
           # ------------------------------------------------
           echo "[1/4] Logging in to GHCR..."
-          echo "$GHCR_PAT" | docker login ghcr.io \
+          echo "$GITHUB_TOKEN" | docker login ghcr.io \
             --username "$GITHUB_ACTOR" \
             --password-stdin
           echo "      Login OK."
@@ -142,16 +145,19 @@ jobs:
           # ------------------------------------------------
           echo "[2/4] Updating repository on VM..."
           REPO_DIR="$HOME/pharmacy-saas"
-          REPO_URL="https://${GHCR_PAT}@github.com/${GITHUB_REPOSITORY_OWNER}/pharmacy-saas.git"
+          REPO_URL="https://github.com/${GITHUB_REPOSITORY_OWNER}/pharmacy-saas.git"
+          GIT_AUTH_HEADER="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 | tr -d '\n')"
 
           if [ -d "$REPO_DIR/.git" ]; then
             cd "$REPO_DIR"
-            git fetch origin main
+            git remote set-url origin "$REPO_URL"
+            git -c http.extraheader="$GIT_AUTH_HEADER" fetch origin main
             git reset --hard origin/main
           else
-            git clone "$REPO_URL" "$REPO_DIR"
+            git -c http.extraheader="$GIT_AUTH_HEADER" clone "$REPO_URL" "$REPO_DIR"
             cd "$REPO_DIR"
           fi
+          unset GIT_AUTH_HEADER
           echo "      Repository updated."
 
           # ------------------------------------------------
